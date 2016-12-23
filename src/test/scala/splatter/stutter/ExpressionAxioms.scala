@@ -5,24 +5,21 @@ import org.scalatest.Matchers._
 
 class ExpressionAxioms extends FunSpec {
   describe("Expression Axioms") {
-    import Expr.Axioms._
-    it("QuoteExpression should yield the quoted expression") {
-      yields(QuoteExpr(Atom("a"))) should be {
-        Atom("a")
-      }
+    import Stutter.Axioms._
+    import Stutter.Parser._
+    it("quote expressions should yield the quoted expression") {
+      yields(parse("(quote a)")).toString       should be ("a")
+      yields(parse("'a")).toString              should be ("a")
+      yields(parse("(quote (a b c))")).toString should be ("(a b c)")
     }
-    it("AtomExpression should yield the atom 't' if the argument is an atom or the empty list") {
-      yields(AtomExpr(Atom("a"))) should be {
-        Expr.t
-      }
-      yields(AtomExpr(Expr.EmptyLisp)) should be {
-        Expr.t
-      }
+    it("atom expressions should yield the atom `t` if the argument yields an atom or the empty list") {
+      yields(parse("(atom 'a)")).toString        should be ("t")
+      yields(parse("(atom '())")).toString       should be ("t")
+      yields(parse("(atom (atom 'a))")).toString should be ("t")
     }
-    it("AtomExpression should yield the empty list if the argument is not an atom or the empty list") {
-      yields(AtomExpr(Lisp(Seq(Atom("a"))))) should be {
-        Expr.EmptyLisp
-      }
+    it("atom expression should yield the empty list if the argument does not yield an atom or the empty list") {
+      yields(parse("(atom '(atom 'a))")).toString should be ("()")
+      yields(parse("(atom '(a b c))")).toString   should be ("()")
     }
   }
 }
