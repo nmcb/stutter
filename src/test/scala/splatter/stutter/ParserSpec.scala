@@ -4,13 +4,15 @@ package stutter
 import org.scalatest.FunSpec
 import org.scalatest.Matchers._
 
-class ParserLaws extends FunSpec {
+class ParserSpec extends FunSpec {
   describe("Parser") {
-    it("should parse expressions") {
+    it("should parse atoms") {
       Parser.parse("foo") should be(
         Atom("foo"))
+    }
+    it("should parse lists") {
       Parser.parse("()") should be(
-        Expr.f)
+        Lisp(Nil))
       Parser.parse("(foo)") should be(
         Lisp(Seq(Atom("foo"))))
       Parser.parse("(foo bar)") should be(
