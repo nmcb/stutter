@@ -11,9 +11,10 @@ object Parser {
   val noop: P[Unit] = P(CharIn(WhiteSpace).?)
   val char: P[Unit] = P(CharIn(Characters))
 
-  val atom: P[Atom] = P(char.rep(1).!).map(Atom)
-  val list: P[Lisp] = P("(" ~ expr.rep ~ ")").map(Lisp)
-  val expr: P[Expr] = P(noop ~ (atom | list) ~ noop)
+  val atom: P[Atom] = P(char.rep(1).!.map(Atom))
+  val list: P[Lisp] = P("(" ~ expr.rep.map(Lisp) ~ ")")
+  val quot: P[Lisp] = P("'" ~ expr.map(e => Expr.Quote(e)))
+  val expr: P[Expr] = P(noop ~ (atom | list | quot) ~ noop)
 
   def parse(s: String): Expr = expr.parse(s) match {
     case Success(e, _)    => e

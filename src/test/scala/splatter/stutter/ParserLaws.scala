@@ -18,5 +18,11 @@ class ParserLaws extends FunSpec {
       Parser.parse("(a b (c) d)") should be(
         Lisp(Seq(Atom("a"), Atom("b"), Lisp(Seq(Atom("c"))), Atom("d"))))
     }
+    it("should parse quotes") {
+      Parser.parse("'a") should be(
+        Lisp(Seq(Atom("quote"), Atom("a"))))
+      Parser.parse("'(a b c)") should be(
+        Lisp(Seq(Atom("quote"), Lisp(Seq(Atom("a"), Atom("b"), Atom("c"))))))
+    }
   }
 }
