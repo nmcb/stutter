@@ -13,7 +13,7 @@ object Parser {
 
   val atom: P[Atom] = P(char.rep(1).!.map(Atom))
   val list: P[Lisp] = P("(" ~ expr.rep.map(Lisp) ~ ")")
-  val quot: P[Lisp] = P("'" ~ expr.map(e => Expr.Quote(e)))
+  val quot: P[Lisp] = P("'" ~ expr.map(e => Expr.Axioms.QuoteExpr(e)))
   val expr: P[Expr] = P(noop ~ (atom | list | quot) ~ noop)
 
   def parse(s: String): Expr = expr.parse(s) match {
