@@ -21,5 +21,12 @@ class ExpressionAxioms extends FunSpec {
       yields(parse("(atom '(atom 'a))")).toString should be ("()")
       yields(parse("(atom '(a b c))")).toString   should be ("()")
     }
+    it("eq expression should yield the atom `t` if both operands yield the same atom or both the empty list") {
+      yields(parse("(eq 'a 'a)")).toString should be ("t")
+      yields(parse("(eq '() '())")).toString should be ("t")
+    }
+    it("eq expression should yield the empty list if both operands do not yield the same atom or both the empty list") {
+      yields(parse("(eq 'a 'b)")).toString should be ("()")
+    }
   }
 }

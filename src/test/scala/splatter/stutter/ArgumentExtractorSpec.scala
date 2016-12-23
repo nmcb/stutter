@@ -10,12 +10,14 @@ class ArgumentExtractorSpec extends FunSpec {
     it("should be differentiable") {
       Seq(
         parse("(atom foo)"),
-        parse("(quote bar)")
+        parse("(quote bar)"),
+        parse("(eq foo bar)")
       ) foreach (
         e => (
           e match {
             case AtomExpr(_)  => AtomOperator.value
             case QuoteExpr(_) => QuoteOperator.value
+            case EqExpr(_)    => EqOperator.value
           }
         ) should be (e.asInstanceOf[Lisp].expressions.head.asInstanceOf[Atom].value)
       )
