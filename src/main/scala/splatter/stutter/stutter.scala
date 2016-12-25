@@ -22,18 +22,18 @@ object Stutter {
   val CondOp  = Atom("cond")
 
   abstract class ArgExtractor1(val operator: Atom) {
-    def apply(arg: Expr): Expr = Lisp(Seq(operator, arg))
+    def apply(arg: Expr): Lisp = Lisp(Seq(operator, arg))
     def unapply(e: Expr): Option[Expr] = e match {
       case Lisp(Seq(`operator`, arg)) => Some(arg)
-      case _ => None
+      case _                          => None
     }
   }
 
   abstract class ArgExtractor2(val operator: Atom) {
-    def apply(args: (Expr, Expr)): Expr = Lisp(Seq(operator, args._1, args._2))
+    def apply(args: (Expr, Expr)): Lisp = Lisp(Seq(operator, args._1, args._2))
     def unapply(e: Expr): Option[(Expr,Expr)] = e match {
       case Lisp(Seq(`operator`, arg1, arg2)) => Some((arg1, arg2))
-      case _ => None
+      case _                                 => None
     }
   }
 
@@ -125,7 +125,7 @@ object Stutter {
 
     val atom: P[Atom] = P(char.rep(1).!.map(Atom))
     val list: P[Lisp] = P("(" ~ expr.rep.map(Lisp) ~ ")")
-    val quot: P[Lisp] = P("'" ~ expr.map(e => Lisp(Seq(QuoteOp, e))))
+    val quot: P[Lisp] = P("'" ~ expr.map(e => QuoteExpr(e)))
     val expr: P[Expr] = P(noop ~ (atom | list | quot) ~ noop)
 
     def parse(s: String): Expr = expr.parse(s) match {

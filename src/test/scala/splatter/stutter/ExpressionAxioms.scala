@@ -4,7 +4,7 @@ import org.scalatest.FunSpec
 import org.scalatest.Matchers._
 
 class ExpressionAxioms extends FunSpec {
-  describe("Expression Axioms") {
+  describe("Expression axioms") {
     import Stutter._
     import Stutter.Parser._
     it("quote expressions should yield the quoted expression") {
@@ -12,7 +12,7 @@ class ExpressionAxioms extends FunSpec {
       eval(parse("'a")).toString              should be ("a")
       eval(parse("(quote (a b c))")).toString should be ("(a b c)")
     }
-    it("atom expressions should yield the atom `t` if the argument eval an atom or the empty list") {
+    it("atom expressions should yield the atom `t` if the argument yields an atom or the empty list") {
       eval(parse("(atom 'a)")).toString        should be ("t")
       eval(parse("(atom '())")).toString       should be ("t")
       eval(parse("(atom (atom 'a))")).toString should be ("t")
@@ -21,11 +21,11 @@ class ExpressionAxioms extends FunSpec {
       eval(parse("(atom '(atom 'a))")).toString should be ("()")
       eval(parse("(atom '(a b c))")).toString   should be ("()")
     }
-    it("eq expression should yield the atom `t` if both operands yield the same atom or both the empty list") {
+    it("eq expression should yield the atom `t` if both arguments yield the same atom or both the empty list") {
       eval(parse("(eq 'a 'a)")).toString   should be ("t")
       eval(parse("(eq '() '())")).toString should be ("t")
     }
-    it("eq expression should yield the empty list if both operands do not yield the same atom or both the empty list") {
+    it("eq expression should yield the empty list if both arguments do not yield the same atom or the empty list") {
       eval(parse("(eq 'a 'b)")).toString should be ("()")
     }
     it("car expression should yield the first element of its argument list") {
