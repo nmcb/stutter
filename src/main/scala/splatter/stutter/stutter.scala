@@ -1,82 +1,121 @@
 package splatter.stutter
 
-trait Expr
+sealed trait Expr
 case class Atom(value: String) extends Expr {
   override def toString: String = value
 }
 case class Lisp(expressions: Seq[Expr]) extends Expr {
-  def isEmpty: Boolean = expressions == Nil
+  def isEmpty: Boolean = expressions.isEmpty
   override def toString: String = expressions.mkString("(", " ", ")")
 }
 
 object Stutter {
-  val EmptyLisp = Lisp(Nil)
   val t = Atom("t")
-  val f = EmptyLisp
+  val f = Lisp(Nil)
 
-  object Axioms {
-    val QuoteOperator = Atom("quote")
-    val AtomOperator  = Atom("atom")
-    val EqOperator    = Atom("eq")
+  val AtomOp  = Atom("atom")
+  val QuoteOp = Atom("quote")
+  val EqOp    = Atom("eq")
+  val CarOp   = Atom("car")
+  val CdrOp   = Atom("cdr")
+  val ConsOp  = Atom("cons")
+  val CondOp  = Atom("cond")
 
-    abstract class ArgumentExtractor1(val operator: Atom) { self: Expr =>
-      def apply(arg: Expr) = Lisp(Seq(`operator`, arg))
-      def unapply(expr: Expr): Option[Expr] = expr match {
-        case Lisp(Seq(`operator`, arg)) => Some(arg)
-        case _         => None
-      }
-    }
-
-    abstract class ArgumentExtractor2(val operator: Atom) { self: Expr =>
-      def apply(args: (Expr, Expr)) = Lisp(Seq(`operator`, args._1, args._2))
-      def unapply(expr: Expr): Option[(Expr,Expr)] = expr match {
-        case Lisp(args) if args.nonEmpty && args.head == `operator` => Some((args(1), args(2)))
-        case _                                                      => None
-      }
-    }
-
-    object QuoteExpr extends ArgumentExtractor1(QuoteOperator) with Expr
-    object AtomExpr  extends ArgumentExtractor1(AtomOperator)  with Expr
-    object EqExpr    extends ArgumentExtractor2(EqOperator)    with Expr
-
-    def yields(e: Expr): Expr = e match {
-      // quote expressions
-      case QuoteExpr(arg) => arg
-      // atom expressions
-      case AtomExpr(arg) => arg match {
-        case _: Atom              => t
-        case l: Lisp if l.isEmpty => t
-        case QuoteExpr(a)         => a match {
-          case _: Atom              => t
-          case l: Lisp if l.isEmpty => t
-          case _                    => f
-        }
-        case l: Lisp => yields(l)
-        case _       => f
-      }
-      // eq expressions
-      case EqExpr(args) => args match {
-        case (a: Atom, b: Atom) if a == b                 => t
-        case (a: Lisp, b: Lisp) if a.isEmpty && b.isEmpty => t
-        case (QuoteExpr(a), QuoteExpr(b))                 => (a, b) match {
-          case (x: Atom, y: Atom) if a == b                 => t
-          case (x: Lisp, y: Lisp) if x.isEmpty && y.isEmpty => t
-          case _                                            => f
-        }
-        case (l: Lisp, QuoteExpr(b)) if yields(l) == b        => t
-        case (QuoteExpr(a), l: Lisp) if a == yields(l)        => t
-        case (l1: Lisp, l2: Lisp) if yields(l1) == yields(l2) => t
-        case _                                                => f
-      }
-      case _  => sys.error("doesn't have an operator: " + e)
+  abstract class ArgExtractor1(val operator: Atom) {
+    def apply(arg: Expr): Expr = Lisp(Seq(operator, arg))
+    def unapply(e: Expr): Option[Expr] = e match {
+      case Lisp(Seq(`operator`, arg)) => Some(arg)
+      case _ => None
     }
   }
 
-  object Parser {
-    import fastparse.all._
-    import fastparse.core.Parsed.{Failure, Success}
-    import fastparse.all.parserApi
+  abstract class ArgExtractor2(val operator: Atom) {
+    def apply(args: (Expr, Expr)): Expr = Lisp(Seq(operator, args._1, args._2))
+    def unapply(e: Expr): Option[(Expr,Expr)] = e match {
+      case Lisp(Seq(`operator`, arg1, arg2)) => Some((arg1, arg2))
+      case _ => None
+    }
+  }
 
+  object QuoteExpr extends ArgExtractor1(QuoteOp) {
+    def yields(arg: Expr): Expr = arg
+  }
+
+  object AtomExpr  extends ArgExtractor1(AtomOp) {
+    def yields(arg: Expr): Expr = eval(arg) match {
+      case a: Atom              => t
+      case l: Lisp if l.isEmpty => t
+      case _                    => f
+    }
+  }
+
+  object EqExpr extends ArgExtractor2(EqOp) {
+    def yields(x: Expr, y: Expr): Expr = (eval(x), eval(y)) match {
+      case (a1: Atom, a2: Atom) if a1 == a2                 => t
+      case (l1: Lisp, l2: Lisp) if l1.isEmpty && l2.isEmpty => t
+      case _                                                => f
+    }
+  }
+
+  object CarExpr extends ArgExtractor1(CarOp) {
+    def yields(x: Expr): Expr = eval(x) match {
+      case l: Lisp if l.isEmpty => sys.error("car on empty list")
+      case l: Lisp              => l.expressions.head
+      case _                    => sys.error("not a list")
+    }
+  }
+
+  object CdrExpr extends ArgExtractor1(CdrOp) {
+    def yields(x: Expr): Expr = eval(x) match {
+      case l: Lisp if l.expressions.size <= 1 => sys.error("cdr on empty or singleton list")
+      case l: Lisp                            => Lisp(l.expressions.tail)
+      case _                                  => sys.error("not a list")
+    }
+  }
+
+  object ConsExpr extends ArgExtractor2(ConsOp) {
+    def yields(x: Expr, y: Expr): Expr = (eval(x), eval(y)) match {
+      case (e: Expr, l: Lisp) => Lisp(e +: l.expressions)
+      case _                  => sys.error("not a list")
+    }
+  }
+
+  object CondExpr {
+    def unapply(e: Expr): Option[Seq[Expr]] = e match {
+      case Lisp(Seq(`CondOp`, args @ _*)) => Some(args)
+      case _                              => None
+    }
+    object CondArgExpr {
+      def unapply(e: Expr): Option[(Expr, Expr)] = e match {
+        case Lisp(Seq(p: Expr, e: Expr)) => Some((p, e))
+        case _                           => None
+      }
+    }
+    def yields(args: Seq[Expr]): Expr = {
+      args.find({
+        case CondArgExpr(p, _) => eval(p) == t
+        case arg => sys.error("not a cond, i.e. a (p e) expression, argument: " + arg)
+      }).map({
+        case CondArgExpr(_, e) => eval(e)
+      }).getOrElse(f)
+    }
+  }
+
+  def eval(e: Expr): Expr = e match {
+    case QuoteExpr(x)    => QuoteExpr.yields(x)
+    case AtomExpr(x)     => AtomExpr.yields(x)
+    case EqExpr((x,y))   => EqExpr.yields(x,y)
+    case CarExpr(x)      => CarExpr.yields(x)
+    case CdrExpr(x)      => CdrExpr.yields(x)
+    case ConsExpr((x,y)) => ConsExpr.yields(x, y)
+    case CondExpr(args)  => CondExpr.yields(args)
+    case e: Expr         => sys.error("invalid expression: " + e)
+  }
+
+  object Parser {
+
+    import fastparse.all.{parserApi, _}
+    import fastparse.core.Parsed.{Failure, Success}
 
     val WhiteSpace: Seq[Char] = Seq('\r', '\n', '\t', '\f', '\b', ' ')
     val Characters: Seq[Char] = ('a' to 'z') ++ ('A' to 'Z')
@@ -86,11 +125,11 @@ object Stutter {
 
     val atom: P[Atom] = P(char.rep(1).!.map(Atom))
     val list: P[Lisp] = P("(" ~ expr.rep.map(Lisp) ~ ")")
-    val quot: P[Lisp] = P("'" ~ expr.map(e => Axioms.QuoteExpr(e)))
+    val quot: P[Lisp] = P("'" ~ expr.map(e => Lisp(Seq(QuoteOp, e))))
     val expr: P[Expr] = P(noop ~ (atom | list | quot) ~ noop)
 
     def parse(s: String): Expr = expr.parse(s) match {
-      case Success(e, _)    => e
+      case Success(e, _) => e
       case f: Failure[_, _] => sys.error(f.msg)
     }
   }

@@ -4,8 +4,8 @@ import org.scalatest.FunSpec
 import org.scalatest.Matchers._
 
 class ArgumentExtractorSpec extends FunSpec {
-  import Stutter.Axioms._
   import Stutter.Parser._
+  import Stutter._
   describe("ArgumentExtractor instances") {
     it("should be differentiable") {
       Seq(
@@ -15,9 +15,9 @@ class ArgumentExtractorSpec extends FunSpec {
       ) foreach (
         e => (
           e match {
-            case AtomExpr(_)  => AtomOperator.value
-            case QuoteExpr(_) => QuoteOperator.value
-            case EqExpr(_)    => EqOperator.value
+            case AtomExpr(_)  => AtomOp.value
+            case QuoteExpr(_) => QuoteOp.value
+            case EqExpr(_,_)  => EqOp.value
           }
         ) should be (e.asInstanceOf[Lisp].expressions.head.asInstanceOf[Atom].value)
       )
