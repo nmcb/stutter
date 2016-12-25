@@ -40,7 +40,7 @@ class ExpressionAxioms extends FunSpec {
       eval(parse("(car (cons 'a '(b c)))")).toString should be ("a")
       eval(parse("(cdr (cons 'a '(b c)))")).toString should be ("(b c)")
     }
-    it("(cond (p1 e1) . . . (pn en)) is evaluated as follows; the p expressions are evaluated in order until one returns t; when one is found, the value of the corresponding e expression is returned as the value of the whole cond expression.") {
+    it("cond expression (cond (p1 e1)...(pn en)) is evaluated as follows; the p expressions are evaluated in order until one returns t; when one is found, the value of the corresponding e expression is returned as the value of the whole cond expression.") {
       eval(parse("(cond ((eq 'a 'b) 'first) ((atom 'a) 'second))")).toString should be ("second")
     }
   }

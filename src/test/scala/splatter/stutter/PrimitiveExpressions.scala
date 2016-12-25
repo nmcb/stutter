@@ -64,7 +64,7 @@ class PrimitiveExpressions extends FunSpec {
       ConsExpr((Lisp(Seq(Atom("foo"))), Lisp(Seq(Atom("bar"))))) should be (parse("(cons (foo) (bar))"))
     }
     it("cons expressions should be extractable") {
-      (parse("(cons (foo) (bar))") match { case ConsExpr(arg) => arg }) should be ((parse("(foo)"), parse("(bar)")))
+      (parse("(cons (foo) (bar))") match { case ConsExpr(l1, l2) => (l1, l2) }) should be ((parse("(foo)"), parse("(bar)")))
     }
   }
 }
