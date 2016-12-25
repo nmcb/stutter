@@ -141,6 +141,11 @@ object Stutter {
       }
     }
 
+    def isQuotedLambda(expr: Expr): Boolean = expr match {
+      case QuoteExpr(LambdaExpr((_,_))) => true
+      case _ => false
+    }
+
     /* An expression whose first element is such an expression
      * ```((lambda (p1...pn) e) a1...an)``` is called a function
      * call and its value is computed (yielded) as follows below.
@@ -164,18 +169,15 @@ object Stutter {
     def yields(parms: Seq[Expr], e: Expr, args: Seq[Expr]): Expr = e match {
 
       // parameters as operators.
-      case Lisp(Seq(op, fargs @ _*))
-        if !PrimitiveOps.contains(op) && args.nonEmpty && (args.head match {
-          case QuoteExpr(LambdaExpr((_,_))) => true
-          case _ => false
-        })   =>
-          val QuoteExpr(LambdaExpr((ps, e2))) = args.head
-          val lambda = Lisp(Seq(LambdaOp, Lisp(ps), e2))
+      case Lisp(Seq(op : Atom, fargs @ _*))
+        if !PrimitiveOps.contains(op) && args.nonEmpty && isQuotedLambda(args.head) =>
+          // unquote the lambda so that it can be evaluated
+          val QuoteExpr(lambda) = args.head
           eval(Lisp(lambda +: fargs))
 
-      // parameters as arguments
+      // parameters as arguments.
       case _ => eval(e.replace(parms.zip(args.map({
-        // treat code as data during eval
+        // omit quoted expressions during replacement evaluation
         case QuoteExpr(quote) => QuoteExpr(quote)
         case e: Expr => eval(e)
       })).toMap))
