@@ -7,7 +7,7 @@ class FunctionCallSpec extends FunSpec {
   import Stutter._
   import Stutter.Parser._
   describe("A function call") {
-    it("should work as specified...") {
+    it("works as specified in chapter 2 of roots of lisp...") {
       eval(
         parse(
           """
@@ -29,7 +29,7 @@ class FunctionCallSpec extends FunSpec {
         )
       ) should be (parse("(z b c)"))
     }
-    it("treat parameters as operators in expressions as well as arguments") {
+    it("treats parameters as operators in expressions as well as arguments") {
       eval(
         parse(
           """
