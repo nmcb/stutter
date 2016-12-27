@@ -1,22 +1,14 @@
 package splatter.stutter
 
-sealed trait Expr {
-  def replace(parms: Map[Expr, Expr]): Expr
-}
+sealed trait Expr
+
 case class Atom(value: String) extends Expr {
-  override def replace(parms: Map[Expr, Expr]): Expr = this
   override def toString: String = value
 }
+
 case class Lisp(expressions: Seq[Expr]) extends Expr {
   def isEmpty: Boolean = expressions.isEmpty
   override def toString: String = expressions.mkString("(", " ", ")")
-  def replace(parms: Map[Expr, Expr]): Lisp = {
-    Lisp(expressions.map({
-      case a: Atom if parms.keySet.contains(a) => parms(a)
-      case a: Atom => a
-      case l: Lisp => l.replace(parms)
-    }))
-  }
 }
 
 object Stutter {
@@ -176,11 +168,19 @@ object Stutter {
           eval(Lisp(lambda +: fargs))
 
       // parameters as arguments.
-      case _ => eval(e.replace(parms.zip(args.map({
+      case l: Lisp => eval(replace(l, parms.zip(args.map({
         // omit quoted expressions during replacement evaluation
         case QuoteExpr(quote) => QuoteExpr(quote)
         case e: Expr => eval(e)
       })).toMap))
+    }
+
+    def replace(l: Lisp, parms: Map[Expr, Expr]): Lisp = {
+      Lisp(l.expressions.map({
+        case a: Atom if parms.keySet.contains(a) => parms(a)
+        case a: Atom => a
+        case r: Lisp => replace(r, parms)
+      }))
     }
   }
 
