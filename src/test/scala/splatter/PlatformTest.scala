@@ -10,7 +10,7 @@ class PlatformTest extends FunSpec {
       System.getProperty("java.version") should startWith("1.8.0")
     }
     it("should have the correct Scala version") {
-      scala.util.Properties.versionNumberString should be("2.11.8")
+      scala.util.Properties.versionNumberString should be("2.12.1")
     }
   }
 }
