@@ -26,6 +26,7 @@ object Stutter {
   val PrimitiveOps = Seq(AtomOp, QuoteOp, EqOp, CarOp, CdrOp, ConsOp, CondOp)
 
   val LambdaOp = Atom("lambda")
+  val LabelOp  = Atom("label")
 
   def eval(e: Expr): Expr = e match {
     // self defined first
@@ -122,22 +123,22 @@ object Stutter {
     }
   }
 
-  object FunctionCall {
-
-    /* A lambda function is expressed as ```(lambda (p1...pn) e)```, where
-     * ```p1...pn``` are atoms (called parameters) and e is an expr.
-     */
-    object LambdaExpr {
-      def unapply(expr: Expr): Option[(Seq[Expr], Expr)] = expr match {
-        case Lisp(Seq(`LambdaOp`, Lisp(parms), e)) => Some(parms, e)
-        case _                                     => None
-      }
+  /* A lambda function is expressed as ```(lambda (p1...pn) e)```, where
+   * ```p1...pn``` are atoms (called parameters) and e is an expr.
+   */
+  object LambdaExpr {
+    def unapply(expr: Expr): Option[(Seq[Expr], Expr)] = expr match {
+      case Lisp(Seq(`LambdaOp`, Lisp(parms), e)) => Some(parms, e)
+      case _                                     => None
     }
-
     def isQuotedLambda(expr: Expr): Boolean = expr match {
       case QuoteExpr(LambdaExpr((_,_))) => true
       case _                            => false
     }
+  }
+
+  object FunctionCall {
+    import LambdaExpr.isQuotedLambda
 
     /* An expression whose first element is such an expression
      * ```((lambda (p1...pn) e) a1...an)``` is called a function
@@ -177,12 +178,16 @@ object Stutter {
     }
 
     def replace(l: Lisp, parms: Map[Expr, Expr]): Lisp = {
-      Lisp(l.expressions.map({
+      Lisp(l.expressions.map({ // TODO clearly Lisp needs a `map`.
         case a: Atom if parms.keySet.contains(a) => parms(a)
         case a: Atom => a
         case r: Lisp => replace(r, parms)
       }))
     }
+  }
+
+  object Label {
+
   }
 
   object Parser {
@@ -192,17 +197,17 @@ object Stutter {
     def WhiteSpace: Seq[Char] = Seq('\r', '\n', '\t', '\f', '\b', ' ')
     def Characters: Seq[Char] = ('a' to 'z') ++ ('A' to 'Z')
 
-    def noop: P[Unit] = P(CharIn(WhiteSpace).rep.?)
+    def whsp: P[Unit] = P(CharIn(WhiteSpace).rep.?)
     def char: P[Unit] = P(CharIn(Characters))
 
     def atom: P[Atom] = P(char.rep(1).!.map(Atom))
-    def list: P[Lisp] = P("(" ~ expr.rep.map(Lisp) ~ noop ~ ")")
+    def list: P[Lisp] = P("(" ~ expr.rep.map(Lisp) ~ whsp ~ ")")
     def quot: P[Lisp] = P(("'" | "’") ~ expr.map(e => QuoteExpr(e)))
-    def expr: P[Expr] = P(noop ~ (atom | list | quot) ~ noop)
+    def expr: P[Expr] = P(whsp ~ (atom | list | quot) ~ whsp)
 
     def parse(s: String): Expr = expr.parse(s) match {
-      case Success(e, _) => e
-      case f: Failure[_, _] => sys.error(f.msg)
+      case Success(e, _)    => e
+      case f: Failure[_, _] => { println(f) ; sys.error(f.msg) }
     }
   }
 }

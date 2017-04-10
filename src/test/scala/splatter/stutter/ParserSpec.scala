@@ -55,10 +55,16 @@ class ParserSpec extends FunSpec {
       parse("(  a  )") should be (parse("(a)"))
       parse(
         """'(
-          |  a    
-          |     b  
+          |  a
+          |     b
           |        c
           |)""".stripMargin) should be(parse("'(a b c)"))
+    }
+
+    /* Sanity Checks */
+
+    it("should parse lists recursively") {
+      parse("(())") should be(Lisp(Seq(Lisp(Nil))))
     }
   }
 }

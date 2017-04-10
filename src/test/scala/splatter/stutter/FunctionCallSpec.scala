@@ -42,18 +42,18 @@ class FunctionCallSpec extends FunSpec {
       ) should be (parse("(a b c)"))
     }
   }
-  describe("function parameter replacement") {
-    it("replace parameters recursively") {
+  describe("structural expression replacement") {
+    it("replaces expressions recursively, though maintains structural composition") {
       replace(parse("(a b (c d (e) f) (g) h)").asInstanceOf[Lisp], Map(
         Atom("a") -> Atom("A"),
         Atom("b") -> Atom("B"),
         Atom("c") -> Atom("C"),
-        Atom("d") -> Atom("D"),
+        Atom("d") -> Lisp(Seq(Atom("DA"), Atom("DB"))),
         Atom("e") -> Atom("E"),
         Atom("f") -> Atom("F"),
-        Atom("g") -> Atom("G"),
+        Atom("g") -> Lisp(Nil),
         Atom("h") -> Atom("H")
-      )) should be (parse("(A B (C D (E) F) (G) H)"))
+      )) should be (parse("(A B (C (DA DB) (E) F) (()) H)"))
     }
   }
 }
