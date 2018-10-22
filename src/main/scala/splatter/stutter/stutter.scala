@@ -191,23 +191,21 @@ object Stutter {
   }
 
   object Parser {
-    import fastparse.all._
-    import fastparse.core.Parsed.{Failure, Success}
+    import fastparse._
+    import fastparse.Parsed.{Failure, Success}
+    import NoWhitespace._
 
-    def WhiteSpace: Seq[Char] = Seq('\r', '\n', '\t', '\f', '\b', ' ')
-    def Characters: Seq[Char] = ('a' to 'z') ++ ('A' to 'Z')
+    def whsp[_: P]: P[Unit] = CharIn("\r\n\t\f\b ").rep.?
+    def char[_: P]: P[Unit] = CharIn("a-zA-Z")
 
-    def whsp: P[Unit] = P(CharIn(WhiteSpace).rep.?)
-    def char: P[Unit] = P(CharIn(Characters))
+    def atom[_: P]: P[Atom] = P(char.rep(1).!.map(Atom))
+    def list[_: P]: P[Lisp] = P("(" ~ expr.rep.map(Lisp) ~ whsp ~ ")")
+    def quot[_: P]: P[Lisp] = P(("'" | "’") ~ expr.map(e => QuoteExpr(e)))
+    def expr[_: P]: P[Expr] = P(whsp ~ (atom | list | quot) ~ whsp)
 
-    def atom: P[Atom] = P(char.rep(1).!.map(Atom))
-    def list: P[Lisp] = P("(" ~ expr.rep.map(Lisp) ~ whsp ~ ")")
-    def quot: P[Lisp] = P(("'" | "’") ~ expr.map(e => QuoteExpr(e)))
-    def expr: P[Expr] = P(whsp ~ (atom | list | quot) ~ whsp)
-
-    def parse(s: String): Expr = expr.parse(s) match {
-      case Success(e, _)    => e
-      case f: Failure[_, _] => { println(f) ; sys.error(f.msg) }
+    def parseLisp(s: String): Expr = parse(s, expr(_)) match {
+      case Success(v, _) => v
+      case f: Failure    => { println(f) ; sys.error(f.msg) }
     }
   }
 }

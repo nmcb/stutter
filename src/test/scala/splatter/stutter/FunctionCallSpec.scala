@@ -10,17 +10,17 @@ class FunctionCallSpec extends FunSpec {
   describe("A function call") {
     it("works as specified in chapter 2 of roots of lisp...") {
       eval(
-        parse(
+        parseLisp(
           """
             |  ((lambda (x) (cons x '(b)))
             |    'a)
             |
           """.stripMargin
         )
-      ) should be (parse("(a b)"))
+      ) should be (parseLisp("(a b)"))
 
       eval(
-        parse(
+        parseLisp(
           """
             |  ((lambda (x y) (cons x (cdr y)))
             |    'z
@@ -28,23 +28,23 @@ class FunctionCallSpec extends FunSpec {
             |
           """.stripMargin
         )
-      ) should be (parse("(z b c)"))
+      ) should be (parseLisp("(z b c)"))
     }
     it("treats parameters as operators in expressions as well as arguments") {
       eval(
-        parse(
+        parseLisp(
           """
           |  ((lambda (f) (f '(b c)))
           |    ’(lambda (x) (cons 'a x)))
           |
         """.stripMargin
         )
-      ) should be (parse("(a b c)"))
+      ) should be (parseLisp("(a b c)"))
     }
   }
   describe("structural expression replacement") {
     it("replaces expressions recursively, though maintains structural composition") {
-      replace(parse("(a b (c d (e) f) (g) h)").asInstanceOf[Lisp], Map(
+      replace(parseLisp("(a b (c d (e) f) (g) h)").asInstanceOf[Lisp], Map(
         Atom("a") -> Atom("A"),
         Atom("b") -> Atom("B"),
         Atom("c") -> Atom("C"),
@@ -53,7 +53,7 @@ class FunctionCallSpec extends FunSpec {
         Atom("f") -> Atom("F"),
         Atom("g") -> Lisp(Nil),
         Atom("h") -> Atom("H")
-      )) should be (parse("(A B (C (DA DB) (E) F) (()) H)"))
+      )) should be (parseLisp("(A B (C (DA DB) (E) F) (()) H)"))
     }
   }
 }
