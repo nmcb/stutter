@@ -2,7 +2,7 @@ package splatter.stutter
 
 import org.scalatest.FunSpec
 import org.scalatest.Matchers._
-import splatter.stutter.Stutter.FunctionCall.replace
+import splatter.stutter.Stutter.replace
 
 class FunctionCallSpec extends FunSpec {
   import Stutter._

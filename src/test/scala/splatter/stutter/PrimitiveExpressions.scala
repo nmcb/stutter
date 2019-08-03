@@ -19,52 +19,52 @@ class PrimitiveExpressions extends FunSpec {
       ) foreach (
         e => (
           e match {
-            case AtomExpr(_)   => AtomOp.value
-            case QuoteExpr(_)  => QuoteOp.value
-            case EqExpr(_,_)   => EqOp.value
-            case CarExpr(_)    => CarOp.value
-            case CdrExpr(_)    => CdrOp.value
-            case ConsExpr(_,_) => ConsOp.value
-            case CondExpr(_)   => CondOp.value
+            case Lisp(Seq(AtomOp, _))    => AtomOp.value
+            case Lisp(Seq(QuoteOp, _))   => QuoteOp.value
+            case Lisp(Seq(EqOp, _, _))   => EqOp.value
+            case Lisp(Seq(CarOp, _))     => CarOp.value
+            case Lisp(Seq(CdrOp, _))     => CdrOp.value
+            case Lisp(Seq(ConsOp, _, _)) => ConsOp.value
+            case Lisp(CondOp +: _)       => CondOp.value
           }
         ) should be (e.asInstanceOf[Lisp].expressions.head.asInstanceOf[Atom].value)
       )
     }
     it("quote expressions should be constructable") {
-      QuoteExpr(Atom("foo")) should be (parseLisp("(quote foo)"))
+      Lisp(Seq(QuoteOp, Atom("foo"))) should be (parseLisp("(quote foo)"))
     }
     it("quote expressions should be extractable") {
-      (parseLisp("(quote foo)") match { case QuoteExpr(foo) => foo }) should be (parseLisp("foo"))
+      (parseLisp("(quote foo)") match { case Lisp(Seq(QuoteOp, foo)) => foo }) should be (parseLisp("foo"))
     }
     it("atom expressions should be constructable") {
-      AtomExpr(Atom("foo")) should be (parseLisp("(atom foo)"))
+      Lisp(Seq(AtomOp, Atom("foo"))) should be (parseLisp("(atom foo)"))
     }
     it("atom expressions should be extractable") {
-      (parseLisp("(atom foo)") match { case AtomExpr(foo) => foo }) should be (parseLisp("foo"))
+      (parseLisp("(atom foo)") match { case Lisp(Seq(AtomOp, foo)) => foo }) should be (parseLisp("foo"))
     }
     it("eq expressions should be constructable") {
-      EqExpr((Atom("foo"), Atom("bar"))) should be (parseLisp("(eq foo bar)"))
+      Lisp(Seq(EqOp, Atom("foo"), Atom("bar"))) should be (parseLisp("(eq foo bar)"))
     }
     it("eq expressions should be extractable") {
-      (parseLisp("(eq foo bar)") match { case EqExpr(foo, bar) => (foo,bar) }) should be ((parseLisp("foo"), parseLisp("bar")))
+      (parseLisp("(eq foo bar)") match { case Lisp(Seq(EqOp, foo, bar)) => (foo,bar) }) should be ((parseLisp("foo"), parseLisp("bar")))
     }
     it("car expressions should be constructable") {
-      CarExpr(Lisp(Seq(Atom("foo"), Atom("bar")))) should be (parseLisp("(car (foo bar))"))
+      Lisp(Seq(CarOp, Lisp(Seq(Atom("foo"), Atom("bar"))))) should be (parseLisp("(car (foo bar))"))
     }
     it("car expressions should be extractable") {
-      (parseLisp("(car (foo bar))") match { case CarExpr(arg) => arg }) should be (parseLisp("(foo bar)"))
+      (parseLisp("(car (foo bar))") match { case Lisp(Seq(CarOp, arg)) => arg }) should be (parseLisp("(foo bar)"))
     }
     it("cdr expressions should be constructable") {
-      CdrExpr(Lisp(Seq(Atom("foo"), Atom("bar")))) should be (parseLisp("(cdr (foo bar))"))
+      Lisp(Seq(CdrOp, (Lisp(Seq(Atom("foo"), Atom("bar")))))) should be (parseLisp("(cdr (foo bar))"))
     }
     it("cdr expressions should be extractable") {
-      (parseLisp("(cdr (foo bar))") match { case CdrExpr(arg) => arg }) should be (parseLisp("(foo bar)"))
+      (parseLisp("(cdr (foo bar))") match { case Lisp(Seq(CdrOp, arg)) => arg }) should be (parseLisp("(foo bar)"))
     }
     it("cons expressions should be constructable") {
-      ConsExpr((Lisp(Seq(Atom("foo"))), Lisp(Seq(Atom("bar"))))) should be (parseLisp("(cons (foo) (bar))"))
+      Lisp(Seq(ConsOp, Lisp(Seq(Atom("foo"))), Lisp(Seq(Atom("bar"))))) should be (parseLisp("(cons (foo) (bar))"))
     }
     it("cons expressions should be extractable") {
-      (parseLisp("(cons (foo) (bar))") match { case ConsExpr(l1, l2) => (l1, l2) }) should be ((parseLisp("(foo)"), parseLisp("(bar)")))
+      (parseLisp("(cons (foo) (bar))") match { case Lisp(Seq(ConsOp, l1, l2)) => (l1, l2) }) should be ((parseLisp("(foo)"), parseLisp("(bar)")))
     }
   }
 }
