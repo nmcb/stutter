@@ -28,6 +28,9 @@ object Stutter {
   val LambdaOp = Atom("lambda")
   val LabelOp  = Atom("label")
 
+  def eval(s: String): Expr =
+    eval(Parser.parseLisp(s))
+
   def eval(e: Expr): Expr = e match {
     // self defined first
     case FunctionCall(parms, exp, args) => FunctionCall.yields(parms, exp, args)
@@ -149,17 +152,18 @@ object Stutter {
       case _                                  => None
     }
 
-    /* Each expression ai is evaluated. Then e is evaluated. During the
-     * evaluation of e, the value of any occurrence of one of the pi is
-     * the value of the corresponding ai in the most recent function call.
-     * This is the parameters as arguments case below.
-     *
-     * If an expression has as its first element an atom op that is not one
-     * of the primitive operators ```(op a1...an)``` and the value of op is
-     * a function ```(lambda (p1...pn) e)``` then the value of the expression
-     * is the value of ```((lambda (p1...pn) e) a1...an)```.  In other words,
-     * the parameters as operators case below.
-     */
+   /*
+    * If an expression has as its first element an atom op that is not one
+    * of the primitive operators ```(op a1...an)``` and the value of op is
+    * a function ```(lambda (p1...pn) e)``` then the value of the expression
+    * is the value of ```((lambda (p1...pn) e) a1...an)```.  In other words,
+    * the parameters as operators case below.
+    *
+    * Each expression ai is evaluated. Then e is evaluated. During the
+    * evaluation of e, the value of any occurrence of one of the pi is
+    * the value of the corresponding ai in the most recent function call.
+    * This is the parameters as arguments case below.
+    */
     def yields(parms: Seq[Expr], e: Expr, args: Seq[Expr]): Expr = e match {
 
       // parameters as operators.
@@ -184,10 +188,6 @@ object Stutter {
         case r: Lisp => replace(r, parms)
       }))
     }
-  }
-
-  object Label {
-
   }
 
   object Parser {

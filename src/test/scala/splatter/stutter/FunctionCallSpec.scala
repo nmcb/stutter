@@ -10,36 +10,27 @@ class FunctionCallSpec extends FunSpec {
   describe("A function call") {
     it("works as specified in chapter 2 of roots of lisp...") {
       eval(
-        parseLisp(
           """
             |  ((lambda (x) (cons x '(b)))
             |    'a)
             |
-          """.stripMargin
-        )
-      ) should be (parseLisp("(a b)"))
+          """.stripMargin) should be (parseLisp("(a b)"))
 
       eval(
-        parseLisp(
           """
             |  ((lambda (x y) (cons x (cdr y)))
             |    'z
             |    '(a b c))
             |
-          """.stripMargin
-        )
-      ) should be (parseLisp("(z b c)"))
+          """.stripMargin) should be (parseLisp("(z b c)"))
     }
     it("treats parameters as operators in expressions as well as arguments") {
       eval(
-        parseLisp(
           """
           |  ((lambda (f) (f '(b c)))
           |    ’(lambda (x) (cons 'a x)))
           |
-        """.stripMargin
-        )
-      ) should be (parseLisp("(a b c)"))
+        """.stripMargin) should be (parseLisp("(a b c)"))
     }
   }
   describe("structural expression replacement") {
