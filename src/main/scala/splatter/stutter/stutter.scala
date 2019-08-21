@@ -1,17 +1,18 @@
 package splatter.stutter
 
-sealed trait Expr
-
-case class Atom(value: String) extends Expr {
-  override def toString: String = value
-}
-
-case class Lisp(expressions: Seq[Expr]) extends Expr {
-  def isEmpty: Boolean = expressions.isEmpty
-  override def toString: String = expressions.mkString("(", " ", ")")
-}
-
 object Stutter {
+
+  sealed trait Expr
+
+  case class Atom(value: String) extends Expr {
+    override def toString: String = value
+  }
+
+  case class Lisp(expressions: Seq[Expr]) extends Expr {
+    def isEmpty: Boolean = expressions.isEmpty
+    override def toString: String = expressions.mkString("(", " ", ")")
+  }
+
   val t = Atom("t")
   val f = Lisp(Nil)
 
@@ -26,168 +27,76 @@ object Stutter {
   val PrimitiveOps = Seq(AtomOp, QuoteOp, EqOp, CarOp, CdrOp, ConsOp, CondOp)
 
   val LambdaOp = Atom("lambda")
-  val LabelOp  = Atom("label")
 
   def eval(s: String): Expr =
     eval(Parser.parseLisp(s))
 
   def eval(e: Expr): Expr = e match {
-    // self defined first
-    case FunctionCall(parms, exp, args) => FunctionCall.yields(parms, exp, args)
-
-    // primitives last
-    case QuoteExpr(x)     => QuoteExpr.yields(x)
-    case AtomExpr(x)      => AtomExpr.yields(x)
-    case EqExpr((x, y))   => EqExpr.yields(x, y)
-    case CarExpr(x)       => CarExpr.yields(x)
-    case CdrExpr(x)       => CdrExpr.yields(x)
-    case ConsExpr((x, y)) => ConsExpr.yields(x, y)
-    case CondExpr(args)   => CondExpr.yields(args)
-    case _                => sys.error("invalid expression: " + e)
-  }
-
-  abstract class ArgExtractor1(val operator: Atom) {
-    def apply(arg: Expr): Lisp = Lisp(Seq(operator, arg))
-    def unapply(e: Expr): Option[Expr] = e match {
-      case Lisp(Seq(`operator`, arg)) => Some(arg)
-      case _                          => None
-    }
-  }
-
-  abstract class ArgExtractor2(val operator: Atom) {
-    def apply(args: (Expr, Expr)): Lisp = Lisp(Seq(operator, args._1, args._2))
-    def unapply(e: Expr): Option[(Expr, Expr)] = e match {
-      case Lisp(Seq(`operator`, arg1, arg2)) => Some((arg1, arg2))
-      case _                                 => None
-    }
-  }
-
-  abstract class ArgExtractorN(val operator: Atom) {
-    def apply(args: Seq[Expr]): Lisp = Lisp(operator +: args)
-    def unapply(e: Expr): Option[Seq[Expr]] = e match {
-      case Lisp(`operator` +: args) => Some(args)
-      case _                        => None
-    }
-  }
-
-  object QuoteExpr extends ArgExtractor1(QuoteOp) {
-    def yields(arg: Expr): Expr = arg
-  }
-
-  object AtomExpr extends ArgExtractor1(AtomOp) {
-    def yields(arg: Expr): Expr = eval(arg) match {
-      case a: Atom              => t
-      case l: Lisp if l.isEmpty => t
-      case _                    => f
-    }
-  }
-
-  object EqExpr extends ArgExtractor2(EqOp) {
-    def yields(x: Expr, y: Expr): Expr = (eval(x), eval(y)) match {
-      case (a1: Atom, a2: Atom) if a1 == a2                 => t
-      case (l1: Lisp, l2: Lisp) if l1.isEmpty && l2.isEmpty => t
-      case _                                                => f
-    }
-  }
-
-  object CarExpr extends ArgExtractor1(CarOp) {
-    def yields(x: Expr): Expr = eval(x) match {
-      case l: Lisp if l.isEmpty => sys.error("car on empty list")
-      case l: Lisp              => l.expressions.head
-      case _ => sys.error("not a list")
-    }
-  }
-
-  object CdrExpr extends ArgExtractor1(CdrOp) {
-    def yields(x: Expr): Expr = eval(x) match {
-      case l: Lisp if l.expressions.size <= 1 => sys.error("cdr on empty or singleton list")
-      case l: Lisp                            => Lisp(l.expressions.tail)
-      case _ => sys.error("not a list")
-    }
-  }
-
-  object ConsExpr extends ArgExtractor2(ConsOp) {
-    def yields(x: Expr, y: Expr): Expr = (eval(x), eval(y)) match {
-      case (e, Lisp(es)) => Lisp(e +: es)
-      case _             => sys.error("not a list")
-    }
-  }
-
-  object CondExpr extends ArgExtractorN(CondOp){
-    object CondArgExpr {
-      def unapply(arg: Expr): Option[(Expr, Expr)] = arg match {
-        case Lisp(Seq(p, e)) => Some((p, e))
-        case _               => None
-      }
-    }
-    def yields(args: Seq[Expr]): Expr = args match {
-      case CondArgExpr(p, e) +: tail => if (eval(p) == t) eval(e) else yields(tail)
-      case _                         => sys.error("undefined")
-    }
-  }
-
-  /* A lambda function is expressed as ```(lambda (p1...pn) e)```, where
-   * ```p1...pn``` are atoms (called parameters) and e is an expr.
-   */
-  object LambdaExpr {
-    def unapply(expr: Expr): Option[(Seq[Expr], Expr)] = expr match {
-      case Lisp(Seq(`LambdaOp`, Lisp(parms), e)) => Some(parms, e)
-      case _                                     => None
-    }
-    def isQuotedLambda(expr: Expr): Boolean = expr match {
-      case QuoteExpr(LambdaExpr((_,_))) => true
-      case _                            => false
-    }
-  }
-
-  object FunctionCall {
-    import LambdaExpr.isQuotedLambda
-
-    /* An expression whose first element is such an expression
-     * ```((lambda (p1...pn) e) a1...an)``` is called a function
-     * call and its value is computed (yielded) as follows below.
-     */
-    def unapply(expr: Expr): Option[(Seq[Expr], Expr, Seq[Expr])] = expr match {
-      case Lisp(LambdaExpr(parms, e) +: args) => Some(parms, e, args)
-      case _                                  => None
-    }
-
-   /*
-    * If an expression has as its first element an atom op that is not one
-    * of the primitive operators ```(op a1...an)``` and the value of op is
-    * a function ```(lambda (p1...pn) e)``` then the value of the expression
-    * is the value of ```((lambda (p1...pn) e) a1...an)```.  In other words,
-    * the parameters as operators case below.
-    *
-    * Each expression ai is evaluated. Then e is evaluated. During the
-    * evaluation of e, the value of any occurrence of one of the pi is
-    * the value of the corresponding ai in the most recent function call.
-    * This is the parameters as arguments case below.
-    */
-    def yields(parms: Seq[Expr], e: Expr, args: Seq[Expr]): Expr = e match {
+    // function calls first
+    case Lisp(Lisp(Seq(LambdaOp, Lisp(parms), expr)) +: args) => expr match {
 
       // parameters as operators.
       case Lisp((op : Atom) +: fargs)
         if !PrimitiveOps.contains(op) && args.nonEmpty && isQuotedLambda(args.head) =>
           // unquote the lambda so that it can be evaluated
-          val QuoteExpr(lambda) = args.head
-          eval(Lisp(lambda +: fargs))
+          val Lisp(Seq(QuoteOp, lambda)) = args.head
+        eval(Lisp(lambda +: fargs))
 
       // parameters as arguments.
       case l: Lisp => eval(replace(l, parms.zip(args.map({
         // omit quoted expressions during replacement evaluation
-        case QuoteExpr(quote) => QuoteExpr(quote)
+        case Lisp(Seq(QuoteOp, lambda)) => Lisp(Seq(QuoteOp, lambda))
         case e: Expr          => eval(e)
       })).toMap))
     }
 
-    def replace(l: Lisp, parms: Map[Expr, Expr]): Lisp = {
-      Lisp(l.expressions.map({ // TODO clearly Lisp needs a `map`.
-        case a: Atom if parms.keySet.contains(a) => parms(a)
-        case a: Atom => a
-        case r: Lisp => replace(r, parms)
-      }))
+    // primitive operations last
+    case Lisp(Seq(QuoteOp, arg)) => arg
+    case Lisp(Seq(AtomOp, arg))  => eval(arg) match {
+      case a: Atom              => t
+      case l: Lisp if l.isEmpty => t
+      case _                    => f
     }
+    case Lisp(Seq(EqOp, x, y))   => (eval(x), eval(y)) match {
+      case (a1: Atom, a2: Atom) if a1 == a2                 => t
+      case (l1: Lisp, l2: Lisp) if l1.isEmpty && l2.isEmpty => t
+      case _                                                => f
+    }
+    case Lisp(Seq(CarOp, arg))  => eval(arg) match {
+      case l: Lisp if l.isEmpty => sys.error("car on empty list")
+      case l: Lisp              => l.expressions.head
+      case _ => sys.error("not a list")
+    }
+    case Lisp(Seq(CdrOp, arg))       => eval(arg) match {
+      case l: Lisp if l.expressions.size <= 1 => sys.error("cdr on empty or singleton list")
+      case l: Lisp                            => Lisp(l.expressions.tail)
+      case _ => sys.error("not a list")
+    }
+    case Lisp(Seq(ConsOp, x, y)) => (eval(x), eval(y)) match {
+      case (e, Lisp(es)) => Lisp(e +: es)
+      case _             => sys.error("not a list")
+    }
+    case Lisp(CondOp +: args)   => {
+      val Lisp(Seq(_, expr)) = args.find(l => l match {
+          case Lisp(Seq(p, e)) => eval(p) == t
+        }).getOrElse(sys.error("undefined"))
+
+      eval(expr)
+    }
+    case _                => sys.error("invalid expression: " + e)
+  }
+
+  def isQuotedLambda(expr: Expr): Boolean = expr match {
+    case Lisp(Seq(QuoteOp, Lisp(Seq(`LambdaOp`, Lisp(_), _)))) => true
+    case _                            => false
+  }
+
+  def replace(l: Lisp, parms: Map[Expr, Expr]): Lisp = {
+    Lisp(l.expressions.map({ // TODO clearly Lisp needs a `map`.
+      case a: Atom if parms.keySet.contains(a) => parms(a)
+      case a: Atom => a
+      case r: Lisp => replace(r, parms)
+    }))
   }
 
   object Parser {
@@ -200,7 +109,7 @@ object Stutter {
 
     def atom[_: P]: P[Atom] = P(char.rep(1).!.map(Atom))
     def list[_: P]: P[Lisp] = P("(" ~ expr.rep.map(Lisp) ~ whsp ~ ")")
-    def quot[_: P]: P[Lisp] = P(("'" | "’") ~ expr.map(e => QuoteExpr(e)))
+    def quot[_: P]: P[Lisp] = P(("'" | "’") ~ expr.map(e => Lisp(Seq(QuoteOp, e))))
     def expr[_: P]: P[Expr] = P(whsp ~ (atom | list | quot) ~ whsp)
 
     def parseLisp(s: String): Expr = parse(s, expr(_)) match {

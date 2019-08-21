@@ -5,6 +5,7 @@ import org.scalatest.FunSpec
 import org.scalatest.Matchers._
 
 class ParserSpec extends FunSpec {
+  import Stutter._
   import Stutter.Parser._
   describe("Parser") {
     it("should parse atoms") {
