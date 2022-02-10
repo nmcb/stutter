@@ -1,4 +1,5 @@
-package splatter.stutter
+package splatter
+package stutter
 
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers._

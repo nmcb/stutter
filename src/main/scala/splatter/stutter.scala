@@ -1,4 +1,5 @@
-package splatter.stutter
+package splatter
+package stutter
 
 object Stutter {
 
@@ -104,21 +105,32 @@ object Stutter {
   }
 
   object Parser {
-    import fastparse._
-    import fastparse.Parsed.{Failure, Success}
-    import NoWhitespace._
+    
+    import parsing._
+    import P._
 
-    def whsp[_: P]: P[Unit] = CharIn("\r\n\t\f\b ").rep.?
-    def char[_: P]: P[Unit] = CharIn("a-zA-Z")
+    def atom: P[Atom] =
+      satisfy(c => c.isLetter).oneOrMore.map(cs => Atom(cs.mkString("")))
 
-    def atom[_: P]: P[Atom] = P(char.rep(1).!.map(Atom))
-    def list[_: P]: P[Lisp] = P("(" ~ expr.rep.map(Lisp) ~ whsp ~ ")")
-    def quot[_: P]: P[Lisp] = P(("'" | "’") ~ expr.map(e => Lisp(Seq(QuoteOp, e))))
-    def expr[_: P]: P[Expr] = P(whsp ~ (atom | list | quot) ~ whsp)
+    def list: P[Lisp] =
+      for {
+        _ <- keyword("(")
+        l <- expr.zeroOrMore.map(es => Lisp(es))
+        _ <- spaces
+        _ <- keyword(")")
+      } yield l
 
-    def parseLisp(s: String): Expr = parse(s, expr(_)) match {
-      case Success(v, _) => v
-      case f: Failure    => { println(f) ; sys.error(f.msg) }
-    }
+    def quot: P[Lisp] =
+      (keyword("'") | keyword("’")) ~ expr.map(e => Lisp(Seq(QuoteOp, e)))
+
+    def expr: P[Expr] =
+      for {
+        _ <- spaces
+        e <- (atom | list | quot)
+        _ <- spaces
+      } yield e
+
+    def parseLisp(s: String): Expr =
+      run(expr)(s)
   }
 }
