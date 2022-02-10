@@ -15,7 +15,6 @@ lazy val root: Project = (project in file("."))
   .settings(
     name := ProjectName,
     libraryDependencies ++= Seq(
-        "com.lihaoyi"    %% "fastparse"  % "2.3.3",
         "org.scalacheck" %% "scalacheck" % "1.14.1" % "test",
         "org.scalatest"  %% "scalatest"  % "3.2.10" % "test"
     )
