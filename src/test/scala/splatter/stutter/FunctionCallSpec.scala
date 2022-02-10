@@ -1,10 +1,10 @@
 package splatter.stutter
 
-import org.scalatest.FunSpec
-import org.scalatest.Matchers._
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.matchers.should.Matchers._
 import splatter.stutter.Stutter.replace
 
-class FunctionCallSpec extends FunSpec {
+class FunctionCallSpec extends AnyFunSpec {
   import Stutter._
   import Stutter.Parser._
   describe("A function call") {

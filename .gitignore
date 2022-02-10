@@ -9,8 +9,15 @@ dist/*
 target/
 lib_managed/
 src_managed/
-project/boot/
+project/project/
 project/plugins/project/
 
+# bloop specific
+.metals/
+.bloop/
+.bsp/
+project/metals.sbt
+
 .idea/
+.vscode/
 .DS_Store

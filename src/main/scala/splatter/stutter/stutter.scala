@@ -33,26 +33,29 @@ object Stutter {
 
   def eval(e: Expr): Expr = e match {
     // function calls first
-    case Lisp(Lisp(Seq(LambdaOp, Lisp(parms), expr)) +: args) => expr match {
+    case Lisp(Lisp(Seq(LambdaOp, Lisp(parms), expr)) +: args) =>
+      expr match {
 
-      // parameters as operators.
-      case Lisp((op : Atom) +: fargs)
-        if !PrimitiveOps.contains(op) && args.nonEmpty && isQuotedLambda(args.head) =>
-          // unquote the lambda so that it can be evaluated
-          val Lisp(Seq(QuoteOp, lambda)) = args.head
-        eval(Lisp(lambda +: fargs))
+        // parameters as operators.
+        case Lisp((op : Atom) +: fargs)
+          if !PrimitiveOps.contains(op) && args.nonEmpty && isQuotedLambda(args.head) =>
+            // unquote the lambda so that it can be evaluated
+            val Lisp(Seq(QuoteOp, lambda)) = args.head
+          eval(Lisp(lambda +: fargs))
 
-      // parameters as arguments.
-      case l: Lisp => eval(replace(l, parms.zip(args.map({
-        // omit quoted expressions during replacement evaluation
-        case Lisp(Seq(QuoteOp, lambda)) => Lisp(Seq(QuoteOp, lambda))
-        case e: Expr          => eval(e)
-      })).toMap))
-    }
+        // parameters as arguments.
+        case l: Lisp => eval(replace(l, parms.zip(args.map({
+          // omit quoted expressions during replacement evaluation
+          case Lisp(Seq(QuoteOp, lambda)) => Lisp(Seq(QuoteOp, lambda))
+          case e: Expr => eval(e)
+        })).toMap))
+
+        case _ => sys.error(s"eval $e")
+      }
 
     // primitive operations last
     case Lisp(Seq(QuoteOp, arg)) => arg
-    case Lisp(Seq(AtomOp, arg))  => eval(arg) match {
+    case Lisp(Seq(AtomOp, arg)) => eval(arg) match {
       case a: Atom              => t
       case l: Lisp if l.isEmpty => t
       case _                    => f
@@ -79,11 +82,12 @@ object Stutter {
     case Lisp(CondOp +: args)   => {
       val Lisp(Seq(_, expr)) = args.find(l => l match {
           case Lisp(Seq(p, e)) => eval(p) == t
+          case _ => sys.error(s"no list of sequence $l")
         }).getOrElse(sys.error("undefined"))
 
       eval(expr)
     }
-    case _                => sys.error("invalid expression: " + e)
+    case _ => sys.error("invalid expression: " + e)
   }
 
   def isQuotedLambda(expr: Expr): Boolean = expr match {
