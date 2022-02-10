@@ -1,10 +1,10 @@
 package splatter
 package stutter
 
-import org.scalatest.FunSpec
-import org.scalatest.Matchers._
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.matchers.should.Matchers._
 
-class ParserSpec extends FunSpec {
+class ParserSpec extends AnyFunSpec {
   import Stutter._
   import Stutter.Parser._
   describe("Parser") {

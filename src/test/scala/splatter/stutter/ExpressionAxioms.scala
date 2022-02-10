@@ -1,9 +1,9 @@
 package splatter.stutter
 
-import org.scalatest.FunSpec
-import org.scalatest.Matchers._
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.matchers.should.Matchers._
 
-class ExpressionAxioms extends FunSpec {
+class ExpressionAxioms extends AnyFunSpec {
   describe("Expression axioms") {
     import Stutter._
     import Stutter.Parser._
