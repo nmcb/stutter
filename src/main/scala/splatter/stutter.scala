@@ -3,19 +3,24 @@ package stutter
 
 object Stutter {
 
-  sealed trait Expr
-
-  case class Atom(value: String) extends Expr {
-    override def toString: String =
-      value
+  sealed trait Expr {
+    def isAtom: Boolean
+    def isLisp: Boolean
+    def subs: Seq[Expr]
   }
 
-  case class Lisp(expressions: Seq[Expr]) extends Expr {
-    def isEmpty: Boolean =
-      expressions.isEmpty
+  case class Atom(value: String) extends Expr {
+    def isAtom: Boolean = true
+    def isLisp: Boolean = false
+    def subs: Seq[Expr] = Nil
+    override def toString: String = value
+  }
 
-    override def toString: String =
-      expressions.mkString("(", " ", ")")
+  case class Lisp(subs: Seq[Expr]) extends Expr {
+    def isAtom: Boolean  = false
+    def isLisp: Boolean  = true
+    def isEmpty: Boolean = subs.isEmpty
+    override def toString: String = subs.mkString("(", " ", ")")
   }
 
   val t = Atom("t")
@@ -28,6 +33,11 @@ object Stutter {
 
   sealed abstract class Primitive[T](name: String) extends Extractable[T] {    
     val Op: Atom = Atom(name)
+  }
+
+  object Primitive {
+    def unapply(e: Expr): Option[Seq[Expr]] =
+      if (e.isAtom) None else Some(e.subs)
   }
 
   sealed abstract class Primitive1(name: String)
@@ -85,7 +95,7 @@ object Stutter {
 
         // parameters as arguments.
         case l: Lisp => eval(replace(l, parms.zip(args.map({
-          // omit quoted expressions during replacement evaluation
+          // omit quoted subs during replacement evaluation
           case Lisp(Seq(Quote.Op, lambda)) => Lisp(Seq(Quote.Op, lambda))
           case e: Expr => eval(e)
         })).toMap))
@@ -107,12 +117,12 @@ object Stutter {
     }
     case Car(arg) => eval(arg) match {
       case l: Lisp if l.isEmpty => sys.error("car on empty list")
-      case l: Lisp              => l.expressions.head
+      case l: Lisp              => l.subs.head
       case _ => sys.error("not a list")
     }
     case Cdr(arg) => eval(arg) match {
-      case l: Lisp if l.expressions.size <= 1 => sys.error("cdr on empty or singleton list")
-      case l: Lisp                            => Lisp(l.expressions.tail)
+      case l: Lisp if l.subs.size <= 1 => sys.error("cdr on empty or singleton list")
+      case l: Lisp                            => Lisp(l.subs.tail)
       case _ => sys.error("not a list")
     }
     case Cons(a, b) => (eval(a), eval(b)) match {
@@ -136,7 +146,7 @@ object Stutter {
   }
 
   def replace(l: Lisp, parms: Map[Expr, Expr]): Lisp = {
-    Lisp(l.expressions.map({ // TODO clearly Lisp needs a `map`.
+    Lisp(l.subs.map({ // TODO clearly Lisp needs a `map`.
       case a: Atom if parms.keySet.contains(a) => parms(a)
       case a: Atom => a
       case r: Lisp => replace(r, parms)
