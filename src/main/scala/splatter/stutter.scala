@@ -21,32 +21,30 @@ object Stutter {
   val t = Atom("t")
   val f = Lisp(Nil)
 
-  sealed abstract class Primitive[T](name: String) extends Expr {
+  sealed abstract trait Extractable[T] extends Expr {
+    def extract: PartialFunction[Expr,T]
+    def unapply(e: Expr): Option[T] = extract.lift(e)
+  }
 
-    def Expr: PartialFunction[Expr,T]
-    
-    val Op: Atom =
-      Atom(name)
-
-    def unapply(e: Expr): Option[T] =
-      Expr.lift(e)
+  sealed abstract class Primitive[T](name: String) extends Extractable[T] {    
+    val Op: Atom = Atom(name)
   }
 
   sealed abstract class Primitive1(name: String)
     extends Primitive[Expr](name) {
-      def Expr: PartialFunction[Expr,Expr] =
+      def extract: PartialFunction[Expr,Expr] =
         { case Lisp(Seq(Op, arg)) => arg }
   }
 
   sealed abstract class Primitive2(name: String)
     extends Primitive[(Expr,Expr)](name) {
-      def Expr: PartialFunction[Expr,(Expr,Expr)] =
+      def extract: PartialFunction[Expr,(Expr,Expr)] =
         { case Lisp(Seq(Op, a, b)) => (a, b) }
   }
 
   sealed abstract class PrimitiveN(name: String)
     extends Primitive[Seq[Expr]](name) {
-      def Expr: PartialFunction[Expr,Seq[Expr]] =
+      def extract: PartialFunction[Expr,Seq[Expr]] =
         { case Lisp(Op +: args) => args }
     }
 
@@ -61,14 +59,22 @@ object Stutter {
   val PrimitiveOps: Seq[Atom] =
     Seq(Atom.Op, Quote.Op, Eq.Op, Car.Op, Cdr.Op, Cons.Op, Cond.Op)
 
-  val LambdaOp = Atom("lambda")
+  object Lambda extends Primitive[(Seq[Expr],Expr)]("lambda") {
+    def extract: PartialFunction[Expr,(Seq[Expr],Expr)] =
+      { case Lisp(Seq(Lambda.Op, Lisp(parms), expr)) => (parms, expr) }
+  }
+
+  object Function extends Extractable[(Seq[Expr],Expr,Seq[Expr])] {
+    def extract: PartialFunction[Expr,(Seq[Expr],Expr,Seq[Expr])] =
+      { case Lisp(Lambda(parms, expr) +: args) => (parms, expr, args) }
+  }
 
   def eval(s: String): Expr =
     eval(Parser.parseLisp(s))
 
   def eval(e: Expr): Expr = e match {
     // function calls first
-    case Lisp(Lisp(Seq(LambdaOp, Lisp(parms), expr)) +: args) =>
+    case Function(parms, expr, args) =>
       expr match {
 
         // parameters as operators.
@@ -121,11 +127,11 @@ object Stutter {
 
       eval(expr)
     }
-    case _ => sys.error("invalid expression: " + e)
+    case _ => sys.error(s"invalid expression: $e")
   }
 
   def isQuotedLambda(expr: Expr): Boolean = expr match {
-    case Lisp(Seq(Quote.Op, Lisp(Seq(`LambdaOp`, Lisp(_), _)))) => true
+    case Lisp(Seq(Quote.Op, Lisp(Seq(Lambda.Op, Lisp(_), _)))) => true
     case _                            => false
   }
 
@@ -134,6 +140,7 @@ object Stutter {
       case a: Atom if parms.keySet.contains(a) => parms(a)
       case a: Atom => a
       case r: Lisp => replace(r, parms)
+      case e: Expr => sys.error(s"non lisp expression: $e")
     }))
   }
 
