@@ -20,53 +20,59 @@ class PrimitiveExpressions extends AnyFunSpec {
       ) foreach (
         e => (
           e match {
-            case Lisp(Seq(AtomOp, _))    => AtomOp.value
-            case Lisp(Seq(QuoteOp, _))   => QuoteOp.value
-            case Lisp(Seq(EqOp, _, _))   => EqOp.value
-            case Lisp(Seq(CarOp, _))     => CarOp.value
-            case Lisp(Seq(CdrOp, _))     => CdrOp.value
-            case Lisp(Seq(ConsOp, _, _)) => ConsOp.value
-            case Lisp(CondOp +: _)       => CondOp.value
+            case Lisp(Seq(Atom.Op, _))    => Atom.Op.value
+            case Lisp(Seq(Quote.Op, _))   => Quote.Op.value
+            case Lisp(Seq(Eq.Op, _, _))   => Eq.Op.value
+            case Lisp(Seq(Car.Op, _))     => Car.Op.value
+            case Lisp(Seq(Cdr.Op, _))     => Cdr.Op.value
+            case Lisp(Seq(Cons.Op, _, _)) => Cons.Op.value
+            case Lisp(Cond.Op +: _)       => Cond.Op.value
             case _ => sys.error(s"unmatched test expression $e")
           }
         ) should be (e.asInstanceOf[Lisp].expressions.head.asInstanceOf[Atom].value)
       )
     }
     it("quote expressions should be constructable") {
-      Lisp(Seq(QuoteOp, Atom("foo"))) should be (parseLisp("(quote foo)"))
+      Lisp(Seq(Quote.Op, Atom("foo"))) should be (parseLisp("(quote foo)"))
     }
     it("quote expressions should be extractable") {
-      ((parseLisp("(quote foo)") : @unchecked) match { case Lisp(Seq(QuoteOp, foo)) => foo }) should be (parseLisp("foo"))
+      ((parseLisp("(quote foo)") : @unchecked) match { case Lisp(Seq(Quote.Op, foo)) => foo }) should be (parseLisp("foo"))
     }
     it("atom expressions should be constructable") {
-      Lisp(Seq(AtomOp, Atom("foo"))) should be (parseLisp("(atom foo)"))
+      Lisp(Seq(Atom.Op, Atom("foo"))) should be (parseLisp("(atom foo)"))
     }
     it("atom expressions should be extractable") {
-      ((parseLisp("(atom foo)") : @unchecked) match { case Lisp(Seq(AtomOp, foo)) => foo }) should be (parseLisp("foo"))
+      ((parseLisp("(atom foo)") : @unchecked) match { case Lisp(Seq(Atom.Op, foo)) => foo }) should be (parseLisp("foo"))
     }
     it("eq expressions should be constructable") {
-      Lisp(Seq(EqOp, Atom("foo"), Atom("bar"))) should be (parseLisp("(eq foo bar)"))
+      Lisp(Seq(Eq.Op, Atom("foo"), Atom("bar"))) should be (parseLisp("(eq foo bar)"))
     }
     it("eq expressions should be extractable") {
-      ((parseLisp("(eq foo bar)") : @unchecked) match { case Lisp(Seq(EqOp, foo, bar)) => (foo,bar) }) should be ((parseLisp("foo"), parseLisp("bar")))
+      ((parseLisp("(eq foo bar)") : @unchecked) match { case Lisp(Seq(Eq.Op, foo, bar)) => (foo,bar) }) should be ((parseLisp("foo"), parseLisp("bar")))
     }
     it("car expressions should be constructable") {
-      Lisp(Seq(CarOp, Lisp(Seq(Atom("foo"), Atom("bar"))))) should be (parseLisp("(car (foo bar))"))
+      Lisp(Seq(Car.Op, Lisp(Seq(Atom("foo"), Atom("bar"))))) should be (parseLisp("(car (foo bar))"))
     }
     it("car expressions should be extractable") {
-      ((parseLisp("(car (foo bar))") : @unchecked) match { case Lisp(Seq(CarOp, arg)) => arg }) should be (parseLisp("(foo bar)"))
+      ((parseLisp("(car (foo bar))") : @unchecked) match { case Lisp(Seq(Car.Op, arg)) => arg }) should be (parseLisp("(foo bar)"))
     }
     it("cdr expressions should be constructable") {
-      Lisp(Seq(CdrOp, (Lisp(Seq(Atom("foo"), Atom("bar")))))) should be (parseLisp("(cdr (foo bar))"))
+      Lisp(Seq(Cdr.Op, (Lisp(Seq(Atom("foo"), Atom("bar")))))) should be (parseLisp("(cdr (foo bar))"))
     }
     it("cdr expressions should be extractable") {
-      ((parseLisp("(cdr (foo bar))") : @unchecked) match { case Lisp(Seq(CdrOp, arg)) => arg }) should be (parseLisp("(foo bar)"))
+      ((parseLisp("(cdr (foo bar))") : @unchecked) match { case Lisp(Seq(Cdr.Op, arg)) => arg }) should be (parseLisp("(foo bar)"))
     }
     it("cons expressions should be constructable") {
-      Lisp(Seq(ConsOp, Lisp(Seq(Atom("foo"))), Lisp(Seq(Atom("bar"))))) should be (parseLisp("(cons (foo) (bar))"))
+      Lisp(Seq(Cons.Op, Lisp(Seq(Atom("foo"))), Lisp(Seq(Atom("bar"))))) should be (parseLisp("(cons (foo) (bar))"))
     }
     it("cons expressions should be extractable") {
-      ((parseLisp("(cons (foo) (bar))") : @unchecked) match { case Lisp(Seq(ConsOp, l1, l2)) => (l1, l2) }) should be ((parseLisp("(foo)"), parseLisp("(bar)")))
+      ((parseLisp("(cons (foo) (bar))") : @unchecked) match { case Lisp(Seq(Cons.Op, l1, l2)) => (l1, l2) }) should be ((parseLisp("(foo)"), parseLisp("(bar)")))
+    }
+    it("cond expressions should be constructable") {
+      Lisp(Seq(Cond.Op, Lisp(Seq(Atom("foo"))), Lisp(Seq(Atom("bar"))))) should be (parseLisp("(cond (foo) (bar))"))
+    }
+    it("cond expressions should be extractable") {
+      ((parseLisp("(cond (foo) (bar))") : @unchecked) match { case Lisp(Seq(Cond.Op, l1, l2)) => (l1, l2) }) should be ((parseLisp("(foo)"), parseLisp("(bar)")))
     }
   }
 }
