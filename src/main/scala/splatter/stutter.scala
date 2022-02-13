@@ -21,7 +21,7 @@ object Stutter {
   val t = Atom("t")
   val f = Lisp(Nil)
 
-  sealed abstract trait Extractable[T] extends Expr {
+  sealed abstract trait Extractable[T] {
     def extract: PartialFunction[Expr,T]
     def unapply(e: Expr): Option[T] = extract.lift(e)
   }
@@ -140,7 +140,6 @@ object Stutter {
       case a: Atom if parms.keySet.contains(a) => parms(a)
       case a: Atom => a
       case r: Lisp => replace(r, parms)
-      case e: Expr => sys.error(s"non lisp expression: $e")
     }))
   }
 
