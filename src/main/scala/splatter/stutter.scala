@@ -28,16 +28,13 @@ object Stutter {
 
   sealed abstract trait Extractable[T] {
     def extract: PartialFunction[Expr,T]
+
     def unapply(e: Expr): Option[T] = extract.lift(e)
+    def is(e: Expr): Boolean        = unapply(e).isDefined
   }
 
   sealed abstract class Primitive[T](name: String) extends Extractable[T] {    
     val Op: Atom = Atom(name)
-  }
-
-  object Primitive {
-    def unapply(e: Expr): Option[Seq[Expr]] =
-      if (e.isAtom) None else Some(e.subs)
   }
 
   sealed abstract class Primitive1(name: String)
@@ -79,6 +76,11 @@ object Stutter {
       { case Lisp(Lambda(parms, expr) +: args) => (parms, expr, args) }
   }
 
+  object QuotedLambda extends Primitive[(Seq[Expr],Expr)]("quote") {
+    def extract: PartialFunction[Expr,(Seq[Expr],Expr)] =
+      { case Lisp(Seq(Op, Lambda(parms, expr))) => (parms, expr) }
+  }
+
   def eval(s: String): Expr =
     eval(Parser.parseLisp(s))
 
@@ -88,7 +90,7 @@ object Stutter {
       expr match {
 
         // parameters as operators.
-        case Lisp((op : Atom) +: fargs) if !PrimitiveOps.contains(op) && args.nonEmpty && isQuotedLambda(args.head) =>
+        case Lisp((op : Atom) +: fargs) if !PrimitiveOps.contains(op) && args.nonEmpty && QuotedLambda.is(args.head) =>
           // unquote the lambda so that it can be evaluated
           val Lisp(Seq(Quote.Op, lambda)) = args.head
           eval(Lisp(lambda +: fargs))
@@ -96,8 +98,8 @@ object Stutter {
         // parameters as arguments.
         case l: Lisp => eval(replace(l, parms.zip(args.map({
           // omit quoted subs during replacement evaluation
-          case Lisp(Seq(Quote.Op, lambda)) => Lisp(Seq(Quote.Op, lambda))
-          case e: Expr => eval(e)
+          case q @ Lisp(Seq(Quote.Op, _)) => q
+          case e : Expr                   => eval(e)
         })).toMap))
 
         case _ => sys.error(s"eval $e")
@@ -122,15 +124,16 @@ object Stutter {
     }
     case Cdr(arg) => eval(arg) match {
       case l: Lisp if l.subs.size <= 1 => sys.error("cdr on empty or singleton list")
-      case l: Lisp                            => Lisp(l.subs.tail)
+      case l: Lisp                     => Lisp(l.subs.tail)
       case _ => sys.error("not a list")
     }
     case Cons(a, b) => (eval(a), eval(b)) match {
       case (e, Lisp(es)) => Lisp(e +: es)
-      case _             => sys.error("not a list")
+      case _ => sys.error("not a list")
     }
     case Cond(args) => {
-      val Lisp(Seq(_, expr)) = args.find(l => l match {
+      val Lisp(Seq(_, expr)) =
+        args.find(l => l match {
           case Lisp(Seq(p, e)) => eval(p) == t
           case _ => sys.error(s"no list of sequence $l")
         }).getOrElse(sys.error("undefined"))
@@ -138,11 +141,6 @@ object Stutter {
       eval(expr)
     }
     case _ => sys.error(s"invalid expression: $e")
-  }
-
-  def isQuotedLambda(expr: Expr): Boolean = expr match {
-    case Lisp(Seq(Quote.Op, Lisp(Seq(Lambda.Op, Lisp(_), _)))) => true
-    case _                            => false
   }
 
   def replace(l: Lisp, parms: Map[Expr, Expr]): Lisp = {
