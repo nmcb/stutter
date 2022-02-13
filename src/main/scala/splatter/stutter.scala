@@ -10,8 +10,11 @@ object Stutter {
   }
 
   case class Lisp(expressions: Seq[Expr]) extends Expr {
-    def isEmpty: Boolean = expressions.isEmpty
-    override def toString: String = expressions.mkString("(", " ", ")")
+    def isEmpty: Boolean =
+      expressions.isEmpty
+
+    override def toString: String =
+      expressions.mkString("(", " ", ")")
   }
 
   val t = Atom("t")
@@ -38,10 +41,9 @@ object Stutter {
       expr match {
 
         // parameters as operators.
-        case Lisp((op : Atom) +: fargs)
-          if !PrimitiveOps.contains(op) && args.nonEmpty && isQuotedLambda(args.head) =>
-            // unquote the lambda so that it can be evaluated
-            val Lisp(Seq(QuoteOp, lambda)) = args.head
+        case Lisp((op : Atom) +: fargs) if !PrimitiveOps.contains(op) && args.nonEmpty && isQuotedLambda(args.head) =>
+          // unquote the lambda so that it can be evaluated
+          val Lisp(Seq(QuoteOp, lambda)) = args.head
           eval(Lisp(lambda +: fargs))
 
         // parameters as arguments.
@@ -116,7 +118,6 @@ object Stutter {
       for {
         _ <- keyword("(")
         l <- expr.zeroOrMore.map(es => Lisp(es))
-        _ <- spaces
         _ <- keyword(")")
       } yield l
 
