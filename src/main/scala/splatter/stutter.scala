@@ -20,13 +20,15 @@ object Stutter {
     def isAtom: Boolean  = false
     def isLisp: Boolean  = true
     def isEmpty: Boolean = subs.isEmpty
+
     override def toString: String = subs.mkString("(", " ", ")")
   }
 
+  // wtf ffs - special values?! - relax.. these were the 1960s - legacy
   val t = Atom("t")
   val f = Lisp(Nil)
 
-  sealed abstract trait Extractable[T] {
+  sealed trait Extractable[T] {
     def extract: PartialFunction[Expr,T]
 
     def unapply(e: Expr): Option[T] = extract.lift(e)
@@ -37,23 +39,17 @@ object Stutter {
     val Op: Atom = Atom(name)
   }
 
-  sealed abstract class Primitive1(name: String)
-    extends Primitive[Expr](name) {
-      def extract: PartialFunction[Expr,Expr] =
-        { case Lisp(Seq(Op, arg)) => arg }
+  sealed abstract class Primitive1(name: String) extends Primitive[Expr](name) {
+    def extract = { case Lisp(Seq(Op, arg)) => arg }
   }
 
-  sealed abstract class Primitive2(name: String)
-    extends Primitive[(Expr,Expr)](name) {
-      def extract: PartialFunction[Expr,(Expr,Expr)] =
-        { case Lisp(Seq(Op, a, b)) => (a, b) }
+  sealed abstract class Primitive2(name: String) extends Primitive[(Expr,Expr)](name) {
+    def extract = { case Lisp(Seq(Op, a, b)) => (a, b) }
   }
 
-  sealed abstract class PrimitiveN(name: String)
-    extends Primitive[Seq[Expr]](name) {
-      def extract: PartialFunction[Expr,Seq[Expr]] =
-        { case Lisp(Op +: args) => args }
-    }
+  sealed abstract class PrimitiveN(name: String) extends Primitive[Seq[Expr]](name) {
+    def extract = { case Lisp(Op +: args) => args }
+  }
 
   object Quote extends Primitive1("quote")
   object Atom  extends Primitive1("atom")
@@ -66,23 +62,20 @@ object Stutter {
   val PrimitiveOps: Seq[Atom] =
     Seq(Atom.Op, Quote.Op, Eq.Op, Car.Op, Cdr.Op, Cons.Op, Cond.Op)
 
+  // (lambda (p1 ... pn) e)
   object Lambda extends Primitive[(Seq[Expr],Expr)]("lambda") {
-    def extract: PartialFunction[Expr,(Seq[Expr],Expr)] =
-      { case Lisp(Seq(Lambda.Op, Lisp(parms), expr)) => (parms, expr) }
+    def extract = { case Lisp(Seq(Lambda.Op, Lisp(parms), expr)) => (parms, expr) }
   }
 
-  object Function extends Extractable[(Seq[Expr],Expr,Seq[Expr])] {
-    def extract: PartialFunction[Expr,(Seq[Expr],Expr,Seq[Expr])] =
-      { case Lisp(Lambda(parms, expr) +: args) => (parms, expr, args) }
-  }
-
+  // (quote (lambda (p1 ... pn) e))
   object QuotedLambda extends Primitive[(Seq[Expr],Expr)]("quote") {
-    def extract: PartialFunction[Expr,(Seq[Expr],Expr)] =
-      { case Lisp(Seq(Op, Lambda(parms, expr))) => (parms, expr) }
+    def extract = { case Lisp(Seq(Op, Lambda(parms, expr))) => (parms, expr) }
   }
 
-  def eval(s: String): Expr =
-    eval(Parser.parseLisp(s))
+  // ((lambda (p1 ... pn) e) a1 ... an)
+  object Function extends Extractable[(Seq[Expr],Expr,Seq[Expr])] {
+    def extract = { case Lisp(Lambda(parms, expr) +: args) => (parms, expr, args) }
+  }
 
   def eval(e: Expr): Expr = e match {
     // function calls first
@@ -142,6 +135,9 @@ object Stutter {
     }
     case _ => sys.error(s"invalid expression: $e")
   }
+
+  def eval(s: String): Expr =
+    eval(Parser.parseLisp(s))
 
   def replace(l: Lisp, parms: Map[Expr, Expr]): Lisp = {
     Lisp(l.subs.map({ // TODO clearly Lisp needs a `map`.
