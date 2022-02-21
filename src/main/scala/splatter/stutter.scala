@@ -72,6 +72,7 @@ object Stutter {
     def extract = { case Lisp(Seq(Op, Lambda(parms, expr))) => (parms, expr) }
   }
 
+  // ((lambda (p1 ... pn) e) a1 ... an)
   object Function extends Extractable[(Seq[Expr],Expr,Seq[Expr])] {
     def extract = {
       case Lisp(Lambda(parms, expr) +: args) =>
@@ -79,22 +80,26 @@ object Stutter {
     }
   }
 
+  // ((lambda (p1 ... pn) (f fa1 ... fan)) a1 ... an)
   object QuotedFunction extends Extractable[(Seq[Expr],Atom,Seq[Expr],Seq[Expr])] {
     def extract = {
       case Lisp(Lambda(parms, Lisp((op : Atom) +: fargs)) +: args)
-        if !PrimitiveOps.contains(op) && args.nonEmpty && QuotedLambda.is(args.head) =>
-          (parms, op, fargs, args)
+        if !PrimitiveOps.contains(op) &&
+            args.nonEmpty &&
+            QuotedLambda.is(args.head) => (parms, op, fargs, args)
     }
   }
   
   def eval(e: Expr): Expr = e match {
 
-    // quoted function calls first - unquote the lambda
+    // unquoted function calls first
+    // - unquote the lambda present in the first argument
     case QuotedFunction(parms, op, fargs, args) =>
       val Lisp(Seq(Quote.Op, lambda)) = args.head
       eval(Lisp(lambda +: fargs))
 
-    // function calls second - replace the expression args
+    // function calls second
+    // - replace the expression args except for quoted parms
     case Function(parms, expr, args) =>
       val replaced = replace(expr, parms.zip(args.map({
           case q @ Lisp(Seq(Quote.Op, _)) => q
