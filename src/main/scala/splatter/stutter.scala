@@ -35,40 +35,40 @@ object Stutter {
     def is(e: Expr): Boolean        = unapply(e).isDefined
   }
 
-  sealed abstract class Primitive[T](name: String) extends Extractable[T] {    
+  abstract class ExtractableOp[T](name: String) extends Extractable[T] {
     val Op: Atom = Atom(name)
   }
 
-  sealed abstract class Primitive1(name: String) extends Primitive[Expr](name) {
+  abstract class ExtractableOp1(name: String) extends ExtractableOp[Expr](name) {
     def extract = { case Lisp(Seq(Op, arg)) => arg }
   }
 
-  sealed abstract class Primitive2(name: String) extends Primitive[(Expr,Expr)](name) {
+  sealed abstract class ExtractableOp2(name: String) extends ExtractableOp[(Expr,Expr)](name) {
     def extract = { case Lisp(Seq(Op, a, b)) => (a, b) }
   }
 
-  sealed abstract class PrimitiveN(name: String) extends Primitive[Seq[Expr]](name) {
+  sealed abstract class ExtractableOpN(name: String) extends ExtractableOp[Seq[Expr]](name) {
     def extract = { case Lisp(Op +: args) => args }
   }
 
-  object Quote extends Primitive1("quote")
-  object Atom  extends Primitive1("atom")
-  object Eq    extends Primitive2("eq")
-  object Car   extends Primitive1("car")
-  object Cdr   extends Primitive1("cdr")
-  object Cons  extends Primitive2("cons")
-  object Cond  extends PrimitiveN("cond")
+  object Quote extends ExtractableOp1("quote")
+  object Atom  extends ExtractableOp1("atom")
+  object Eq    extends ExtractableOp2("eq")
+  object Car   extends ExtractableOp1("car")
+  object Cdr   extends ExtractableOp1("cdr")
+  object Cons  extends ExtractableOp2("cons")
+  object Cond  extends ExtractableOpN("cond")
 
   val PrimitiveOps: Seq[Atom] =
     Seq(Atom.Op, Quote.Op, Eq.Op, Car.Op, Cdr.Op, Cons.Op, Cond.Op)
 
   // (lambda (p1 ... pn) e)
-  object Lambda extends Primitive[(Seq[Expr],Expr)]("lambda") {
-    def extract = { case Lisp(Seq(Lambda.Op, Lisp(parms), expr)) => (parms, expr) }
+  object Lambda extends ExtractableOp[(Seq[Expr],Expr)]("lambda") {
+    def extract = { case Lisp(Seq(Op, Lisp(parms), expr)) => (parms, expr) }
   }
 
   // (quote (lambda (p1 ... pn) e))
-  object QuotedLambda extends Primitive[(Seq[Expr],Expr)]("quote") {
+  object QuotedLambda extends ExtractableOp[(Seq[Expr],Expr)]("quote") {
     def extract = { case Lisp(Seq(Op, Lambda(parms, expr))) => (parms, expr) }
   }
 
@@ -92,19 +92,21 @@ object Stutter {
   
   def eval(e: Expr): Expr = e match {
 
-    // unquoted function calls first
+    // quoted function calls first
     // - unquote the lambda present in the first argument
     case QuotedFunction(parms, op, fargs, args) =>
       val Lisp(Seq(Quote.Op, lambda)) = args.head
       eval(Lisp(lambda +: fargs))
 
     // function calls second
-    // - replace the expression args except for quoted parms
+    // - eval all args except for quoted ones
+    // - replace the expression parms with the evaluated args
     case Function(parms, expr, args) =>
-      val replaced = replace(expr, parms.zip(args.map({
-          case q @ Lisp(Seq(Quote.Op, _)) => q
-          case e : Expr                   => eval(e)
-        })).toMap)
+      val evaluated = args.map {
+        case q @ Quote(_) => q
+        case e : Expr     => eval(e)
+      }
+      val replaced = replace(expr, parms.zip(evaluated).toMap)
       eval(replaced)
 
     // primitive operations last
