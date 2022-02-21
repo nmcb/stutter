@@ -72,31 +72,35 @@ object Stutter {
     def extract = { case Lisp(Seq(Op, Lambda(parms, expr))) => (parms, expr) }
   }
 
-  // ((lambda (p1 ... pn) e) a1 ... an)
   object Function extends Extractable[(Seq[Expr],Expr,Seq[Expr])] {
-    def extract = { case Lisp(Lambda(parms, expr) +: args) => (parms, expr, args) }
+    def extract = {
+      case Lisp(Lambda(parms, expr) +: args) =>
+        (parms, expr, args)
+    }
   }
 
+  object QuotedFunction extends Extractable[(Seq[Expr],Atom,Seq[Expr],Seq[Expr])] {
+    def extract = {
+      case Lisp(Lambda(parms, Lisp((op : Atom) +: fargs)) +: args)
+        if !PrimitiveOps.contains(op) && args.nonEmpty && QuotedLambda.is(args.head) =>
+          (parms, op, fargs, args)
+    }
+  }
+  
   def eval(e: Expr): Expr = e match {
-    // function calls first
+
+    // quoted function calls first - unquote the lambda
+    case QuotedFunction(parms, op, fargs, args) =>
+      val Lisp(Seq(Quote.Op, lambda)) = args.head
+      eval(Lisp(lambda +: fargs))
+
+    // function calls second - replace the expression args
     case Function(parms, expr, args) =>
-      expr match {
-
-        // parameters as operators.
-        case Lisp((op : Atom) +: fargs) if !PrimitiveOps.contains(op) && args.nonEmpty && QuotedLambda.is(args.head) =>
-          // unquote the lambda so that it can be evaluated
-          val Lisp(Seq(Quote.Op, lambda)) = args.head
-          eval(Lisp(lambda +: fargs))
-
-        // parameters as arguments.
-        case l: Lisp => eval(replace(l, parms.zip(args.map({
-          // omit quoted subs during replacement evaluation
+      val replaced = replace(expr, parms.zip(args.map({
           case q @ Lisp(Seq(Quote.Op, _)) => q
           case e : Expr                   => eval(e)
-        })).toMap))
-
-        case _ => sys.error(s"eval $e")
-      }
+        })).toMap)
+      eval(replaced)
 
     // primitive operations last
     case Quote(arg) => arg
@@ -139,8 +143,8 @@ object Stutter {
   def eval(s: String): Expr =
     eval(Parser.parseLisp(s))
 
-  def replace(l: Lisp, parms: Map[Expr, Expr]): Lisp = {
-    Lisp(l.subs.map({ // TODO clearly Lisp needs a `map`.
+  def replace(expr: Expr, parms: Map[Expr, Expr]): Expr = {
+    Lisp(expr.subs.map({ // TODO clearly Lisp needs a `map`.
       case a: Atom if parms.keySet.contains(a) => parms(a)
       case a: Atom => a
       case r: Lisp => replace(r, parms)
