@@ -36,7 +36,7 @@ class FunctionCallSpec extends AnyFunSpec {
   }
   describe("structural expression replacement") {
     it("replaces expressions recursively, though maintains structural composition") {
-      replace(parseLisp("(a b (c d (e) f) (g) h)").asInstanceOf[Lisp], Map(
+      replace(parseLisp("(a b (c d (e) f) (g) h)"), Map(
         Atom("a") -> Atom("A"),
         Atom("b") -> Atom("B"),
         Atom("c") -> Atom("C"),

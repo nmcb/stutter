@@ -9,6 +9,12 @@ object Stutter {
     def subs: Seq[Expr]
   }
 
+  object Expr {
+    // special values?! - relax.. these were the 1960s - legacy
+    val t = Atom("t")
+    val f = Lisp(Nil)
+  }
+
   case class Atom(value: String) extends Expr {
     def isAtom: Boolean = true
     def isLisp: Boolean = false
@@ -23,10 +29,6 @@ object Stutter {
 
     override def toString: String = subs.mkString("(", " ", ")")
   }
-
-  // wtf ffs - special values?! - relax.. these were the 1960s - legacy
-  val t = Atom("t")
-  val f = Lisp(Nil)
 
   sealed trait Extractable[T] {
     def extract: PartialFunction[Expr,T]
@@ -89,6 +91,8 @@ object Stutter {
             QuotedLambda.is(args.head) => (parms, op, fargs, args)
     }
   }
+
+  import Expr._
   
   def eval(e: Expr): Expr = e match {
 
@@ -124,22 +128,22 @@ object Stutter {
     case Car(arg) => eval(arg) match {
       case l: Lisp if l.isEmpty => sys.error("car on empty list")
       case l: Lisp              => l.subs.head
-      case _ => sys.error("not a list")
+      case a: Atom              => sys.error(s"not a list: $a")
     }
     case Cdr(arg) => eval(arg) match {
       case l: Lisp if l.subs.size <= 1 => sys.error("cdr on empty or singleton list")
       case l: Lisp                     => Lisp(l.subs.tail)
-      case _ => sys.error("not a list")
+      case a: Atom                     => sys.error(s"not a list: $a")
     }
     case Cons(a, b) => (eval(a), eval(b)) match {
       case (e, Lisp(es)) => Lisp(e +: es)
-      case _ => sys.error("not a list")
+      case (_, a: Atom)  => sys.error(s"not a list: $a")
     }
     case Cond(args) => {
       val Lisp(Seq(_, expr)) =
         args.find(l => l match {
           case Lisp(Seq(p, e)) => eval(p) == t
-          case _ => sys.error(s"no list of sequence $l")
+          case e: Expr         => sys.error(s"not a conditional $e")
         }).getOrElse(sys.error("undefined"))
 
       eval(expr)
