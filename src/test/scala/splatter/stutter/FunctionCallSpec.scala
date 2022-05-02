@@ -3,11 +3,9 @@ package stutter
 
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers._
-import splatter.stutter.Stutter.replace
 
-class FunctionCallSpec extends AnyFunSpec {
-  import Stutter._
-  import Stutter.Parser._
+class FunctionCallSpec extends AnyFunSpec:
+  import Parser._
   describe("A function call") {
     it("works as specified in chapter 2 of roots of lisp...") {
       eval(
@@ -48,4 +46,3 @@ class FunctionCallSpec extends AnyFunSpec {
       )) should be (parseLisp("(A B (C (DA DB) (E) F) (()) H)"))
     }
   }
-}
