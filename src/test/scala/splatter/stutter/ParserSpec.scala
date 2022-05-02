@@ -4,9 +4,8 @@ package stutter
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers._
 
-class ParserSpec extends AnyFunSpec {
-  import Stutter._
-  import Stutter.Parser._
+class ParserSpec extends AnyFunSpec:
+  import Parser._
   describe("Parser") {
     it("should parse atoms") {
       parseLisp("foo") should be(
@@ -68,4 +67,3 @@ class ParserSpec extends AnyFunSpec {
       parseLisp("(())") should be(Lisp(Seq(Lisp(Nil))))
     }
   }
-}
