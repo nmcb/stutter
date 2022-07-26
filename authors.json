@@ -1,0 +1,29 @@
+{
+  "authors": [
+    {
+      "github": "nmcb",
+      "team":   "#schoolbank",
+      "name":   "Marco Borst",
+      "status": "active",
+      "credit": {
+        "Mon": 0,
+        "Tue": 0,
+        "Wed": 0,
+        "Thu": 0,
+        "Fri": 0,
+        "Sat": 0,
+        "Sun": 0
+      },
+      "debit": {
+        "Mon": 8,
+        "Tue": 8,
+        "Wed": 8,
+        "Thu": 8,
+        "Fri": 8,
+        "Sat": 0,
+        "Sun": 0
+      },
+      "fee": "99/hour"
+    }
+  ]
+}
