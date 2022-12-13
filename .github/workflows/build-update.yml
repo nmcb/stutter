@@ -8,7 +8,7 @@ name: Launch Scala Update
 jobs:
   scala-steward:
     runs-on: ubuntu-latest
-    name: Launch Scala Update
+    name: Scala Update
     steps:
       - name: Generate Token
         id: generate-token
@@ -17,7 +17,7 @@ jobs:
           app_id: ${{ secrets.APP_SCALA_UPDATE_ID }}
           private_key: ${{ secrets.APP_SCALA_UPDATE_PK }}
 
-      - name: Launch Scala Update
+      - name: Scala Update
         uses: scala-steward-org/scala-steward-action@v2
         with:
           github-token: ${{ steps.generate-token.outputs.token }}
