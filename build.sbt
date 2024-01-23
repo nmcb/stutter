@@ -2,7 +2,7 @@ val ProjectName      = "stutter"
 val OrganisationName = "splatter"
 val ProjectVersion   = "0.1.0"
 
-val ScalaVersion     = "3.2.2"
+val ScalaVersion     = "3.3.1"
 
 def common: Seq[Setting[_]] = Seq(
     organization := OrganisationName
