@@ -121,10 +121,9 @@ def eval(e: Expr): Expr =
       case (_, a: Atom)  => sys.error(s"not a list: $a")
     case CondLit(args) =>
       args
-        .find: l =>
-          l match
-            case Lisp(Seq(p, e)) => eval(p) == Expr.t
-            case e: Expr         => sys.error(s"not a conditional $e")
+        .find:
+          case Lisp(Seq(p, e)) => eval(p) == Expr.t
+          case e: Expr         => sys.error(s"not a conditional $e")
         .getOrElse(sys.error("undefined"))
           match
             case Lisp(Seq(_, expr)) => eval(expr)
