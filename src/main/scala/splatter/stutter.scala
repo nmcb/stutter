@@ -83,8 +83,9 @@ def eval(e: Expr): Expr =
     // quoted function calls first
     // - unquote the lambda present in the first argument
     case QuotedFunction(parms, op, fargs, args) =>
-      val Lisp(Seq(QuoteLit.Op, lambda)) = args.head
-      eval(Lisp(lambda +: fargs))
+      eval(Lisp(args.head match
+        case Lisp(Seq(QuoteLit.Op, lambda)) => lambda  +: fargs
+        case _                              => sys.error("lambda expression not quoted")))
 
     // function calls second
     // - eval all args except for quoted ones
@@ -119,13 +120,17 @@ def eval(e: Expr): Expr =
       case (e, Lisp(es)) => Lisp(e +: es)
       case (_, a: Atom)  => sys.error(s"not a list: $a")
     case CondLit(args) =>
-      val Lisp(Seq(_, expr)) =
-        args.find(l => l match {
-          case Lisp(Seq(p, e)) => eval(p) == Expr.t
-          case e: Expr         => sys.error(s"not a conditional $e")
-        }).getOrElse(sys.error("undefined"))
-      eval(expr)
-    case _ => sys.error(s"invalid expression: $e")
+      args
+        .find: l =>
+          l match
+            case Lisp(Seq(p, e)) => eval(p) == Expr.t
+            case e: Expr         => sys.error(s"not a conditional $e")
+        .getOrElse(sys.error("undefined"))
+          match
+            case Lisp(Seq(_, expr)) => eval(expr)
+            case e                  => sys.error(s"has no argument list $e")
+    case _ =>
+      sys.error(s"invalid expression: $e")
 
 def eval(s: String): Expr =
   eval(Parser.parseLisp(s))
