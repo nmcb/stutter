@@ -156,13 +156,13 @@ object Parser:
       _ <- keyword(")")
     } yield l
 
-  def quot: P[Lisp] =
+  def quote: P[Lisp] =
     (keyword("'") | keyword("’")) ~ expr.map(e => Lisp(Seq(QuoteLit.Op, e)))
 
   def expr: P[Expr] =
     for {
       _ <- spaces
-      e <- (atom | list | quot)
+      e <- (atom | list | quote)
       _ <- spaces
     } yield e
 
