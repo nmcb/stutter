@@ -34,13 +34,19 @@ abstract class ExtractableOp[T](name: String) extends Extractable[T]:
   val Op: Atom = Atom(name)
 
 case class ExtractableOp1(name: String) extends ExtractableOp[Expr](name):
-  def extract = { case Lisp(Seq(Op, arg)) => arg }
+  def extract: PartialFunction[Expr, Expr] = {
+    case Lisp(Seq(Op, arg)) => arg
+  }
 
 case class ExtractableOp2(name: String) extends ExtractableOp[(Expr,Expr)](name):
-  def extract = { case Lisp(Seq(Op, a, b)) => (a, b) }
+  def extract: PartialFunction[Expr, (Expr, Expr)] = {
+    case Lisp(Seq(Op, a, b)) => (a, b)
+  }
 
 case class ExtractableOpN(name: String) extends ExtractableOp[Seq[Expr]](name):
-  def extract = { case Lisp(Op +: args) => args }
+  def extract: PartialFunction[Expr, Seq[Expr]] = {
+    case Lisp(Op +: args) => args
+  }
 
 lazy val QuoteLit = ExtractableOp1("quote")
 lazy val AtomLit  = ExtractableOp1("atom")
@@ -55,11 +61,15 @@ val PrimitiveOps: Seq[Atom] =
 
   // (lambda (p1 ... pn) e)
 object Lambda extends ExtractableOp[(Seq[Expr],Expr)]("lambda"):
-  def extract = { case Lisp(Seq(Op, Lisp(parms), expr)) => (parms, expr) }
+  def extract: PartialFunction[Expr, (Seq[Expr], Expr)] = {
+    case Lisp(Seq(Op, Lisp(parms), expr)) => (parms, expr)
+  }
 
 // (quote (lambda (p1 ... pn) e))
 object QuotedLambda extends ExtractableOp[(Seq[Expr],Expr)]("quote"):
-  def extract = { case Lisp(Seq(Op, Lambda(parms, expr))) => (parms, expr) }
+  def extract: PartialFunction[Expr, (Seq[Expr], Expr)] = {
+    case Lisp(Seq(Op, Lambda(parms, expr))) => (parms, expr)
+  }
 
 // ((lambda (p1 ... pn) e) a1 ... an)
 object Function extends Extractable[(Seq[Expr],Expr,Seq[Expr])]:
@@ -72,9 +82,8 @@ object Function extends Extractable[(Seq[Expr],Expr,Seq[Expr])]:
 object QuotedFunction extends Extractable[(Seq[Expr],Atom,Seq[Expr],Seq[Expr])]:
   def extract: PartialFunction[Expr, (Seq[Expr], Atom, Seq[Expr], Seq[Expr])] = {
     case Lisp(Lambda(parms, Lisp((op : Atom) +: fargs)) +: args)
-      if !PrimitiveOps.contains(op) &&
-          args.nonEmpty &&
-          QuotedLambda.is(args.head) => (parms, op, fargs, args)
+      if !PrimitiveOps.contains(op) && args.nonEmpty && QuotedLambda.is(args.head) =>
+        (parms, op, fargs, args)
   }
 
 def eval(e: Expr): Expr =
@@ -91,10 +100,9 @@ def eval(e: Expr): Expr =
     // - eval all args except for quoted ones
     // - replace the expression parms with the evaluated args
     case Function(parms, expr, args) =>
-      val evaluated = args.map {
+      val evaluated = args.map:
         case q @ QuoteLit(_) => q
         case e : Expr     => eval(e)
-      }
       val replaced = replace(expr, parms.zip(evaluated).toMap)
       eval(replaced)
 
@@ -135,11 +143,11 @@ def eval(s: String): Expr =
   eval(Parser.parseLisp(s))
 
 def replace(expr: Expr, parms: Map[Expr, Expr]): Expr =
-  Lisp(expr.subs.map({ // TODO clearly Lisp needs a `map`.
+  Lisp(expr.subs.map:
     case a: Atom if parms.keySet.contains(a) => parms(a)
     case a: Atom => a
     case r: Lisp => replace(r, parms)
-  }))
+  )
 
 object Parser:
   
@@ -149,22 +157,24 @@ object Parser:
   def atom: P[Atom] =
     satisfy(c => c.isLetter).oneOrMore.map(cs => Atom(cs.mkString("")))
 
-  def list: P[Lisp] =
-    for {
+  private def list: P[Lisp] =
+    for
       _ <- keyword("(")
       l <- expr.zeroOrMore.map(es => Lisp(es))
       _ <- keyword(")")
-    } yield l
+    yield
+      l
 
   def quote: P[Lisp] =
     (keyword("'") | keyword("’")) ~ expr.map(e => Lisp(Seq(QuoteLit.Op, e)))
 
-  def expr: P[Expr] =
-    for {
+  private def expr: P[Expr] =
+    for
       _ <- spaces
-      e <- (atom | list | quote)
+      e <- atom | list | quote
       _ <- spaces
-    } yield e
+    yield
+      e
 
   def parseLisp(s: String): Expr =
     run(expr)(s)
