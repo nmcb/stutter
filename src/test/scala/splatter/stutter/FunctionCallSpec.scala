@@ -6,8 +6,8 @@ import org.scalatest.matchers.should.Matchers._
 
 class FunctionCallSpec extends AnyFunSpec:
   import Parser._
-  describe("A function call") {
-    it("works as specified in chapter 2 of roots of lisp...") {
+  describe("A function call"):
+    it("works as specified in chapter 2 of roots of lisp..."):
       eval(
           """
             |  ((lambda (x) (cons x '(b)))
@@ -22,18 +22,18 @@ class FunctionCallSpec extends AnyFunSpec:
             |    '(a b c))
             |
           """.stripMargin) should be (parseLisp("(z b c)"))
-    }
-    it("treats parameters as operators in expressions as well as arguments") {
+    
+    it("treats parameters as operators in expressions as well as arguments"):
       eval(
           """
           |  ((lambda (f) (f '(b c)))
           |    ’(lambda (x) (cons 'a x)))
           |
         """.stripMargin) should be (parseLisp("(a b c)"))
-    }
-  }
-  describe("structural expression replacement") {
-    it("replaces expressions recursively, though maintains structural composition") {
+    
+  
+  describe("structural expression replacement"):
+    it("replaces expressions recursively, though maintains structural composition"):
       replace(parseLisp("(a b (c d (e) f) (g) h)"), Map(
         Atom("a") -> Atom("A"),
         Atom("b") -> Atom("B"),
@@ -44,5 +44,3 @@ class FunctionCallSpec extends AnyFunSpec:
         Atom("g") -> Lisp(Nil),
         Atom("h") -> Atom("H")
       )) should be (parseLisp("(A B (C (DA DB) (E) F) (()) H)"))
-    }
-  }
