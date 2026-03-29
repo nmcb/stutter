@@ -105,5 +105,4 @@ object parsing:
         a
   
     def keyword(word: String): P[String] =
-      token(string(word))    
-  
+      token(string(word))

@@ -21,12 +21,10 @@ case class Lisp(subs: Seq[Expr]) extends Expr:
   def isAtom: Boolean  = false
   def isLisp: Boolean  = true
   def isEmpty: Boolean = subs.isEmpty
-
   override def toString: String = subs.mkString("(", " ", ")")
 
 sealed trait Extractable[T]:
   def extract: PartialFunction[Expr,T]
-
   def unapply(e: Expr): Option[T] = extract.lift(e)
   def is(e: Expr): Boolean        = unapply(e).isDefined
 
