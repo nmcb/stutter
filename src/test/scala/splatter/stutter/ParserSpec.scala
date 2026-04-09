@@ -5,7 +5,9 @@ import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers._
 
 class ParserSpec extends AnyFunSpec:
+  
   import Parser._
+  
   describe("Parser"):
     it("should parse atoms"):
       parseLisp("foo") should be(

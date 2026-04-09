@@ -5,7 +5,9 @@ import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers._
 
 class PrimitiveExpressions extends AnyFunSpec:
+  
   import Parser._
+  
   describe("Primitive expressions"):
     it("should be differentiable"):
       Seq(

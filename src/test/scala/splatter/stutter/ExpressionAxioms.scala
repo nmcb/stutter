@@ -5,8 +5,8 @@ import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers._
 
 class ExpressionAxioms extends AnyFunSpec:
+
   describe("Expression axioms"):
-    import Parser._
     it("quote expressions should yield the quoted expression"):
       eval("(quote a)").toString       should be ("a")
       eval("'a").toString              should be ("a")

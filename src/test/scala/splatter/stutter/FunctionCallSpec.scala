@@ -5,7 +5,9 @@ import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers._
 
 class FunctionCallSpec extends AnyFunSpec:
+  
   import Parser._
+  
   describe("A function call"):
     it("works as specified in chapter 2 of roots of lisp..."):
       eval(

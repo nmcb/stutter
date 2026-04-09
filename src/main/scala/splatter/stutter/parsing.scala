@@ -1,4 +1,5 @@
 package splatter
+package stutter
 
 import scala.annotation.tailrec
 

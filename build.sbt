@@ -19,3 +19,14 @@ lazy val root: Project = (project in file("."))
       "org.scalatest"  %% "scalatest"  % "3.2.20" % "test"
     )
   )
+
+ThisBuild / scalacOptions ++= Seq(
+  "-encoding", "utf8",
+  "-feature",
+  "-language:implicitConversions",
+  "-language:existentials",
+  "-language:strictEquality",
+  "-unchecked",
+  "-Werror",
+  "-deprecation"
+)

@@ -1,13 +1,13 @@
 package splatter
 package stutter
 
-sealed trait Expr:
+sealed trait Expr derives CanEqual:
   def isAtom: Boolean
   def isLisp: Boolean
   def subs: Seq[Expr]
 
 object Expr:
-  // special values?! - relax.. these were the 1960s - legacy
+  // special values?! - relax... these were the 1960s - legacy
   val t = Atom("t")
   val f = Lisp(Nil)
 
@@ -149,8 +149,8 @@ def replace(expr: Expr, parms: Map[Expr, Expr]): Expr =
 
 object Parser:
   
-  import parsing._
-  import P._
+  import parsing.*
+  import P.*
 
   def atom: P[Atom] =
     satisfy(c => c.isLetter).oneOrMore.map(cs => Atom(cs.mkString("")))
