@@ -36,7 +36,7 @@ case class ExtractableOp1(name: String) extends ExtractableOp[Expr](name):
     case Lisp(Seq(Op, arg)) => arg
   }
 
-case class ExtractableOp2(name: String) extends ExtractableOp[(Expr,Expr)](name):
+case class ExtractableOp2(name: String) extends ExtractableOp[(Expr, Expr)](name):
   def extract: PartialFunction[Expr, (Expr, Expr)] = {
     case Lisp(Seq(Op, a, b)) => (a, b)
   }
@@ -58,26 +58,26 @@ val PrimitiveOps: Seq[Atom] =
   Seq(AtomLit.Op, QuoteLit.Op, EqLit.Op, CarLit.Op, CdrLit.Op, ConsLit.Op, CondLit.Op)
 
   // (lambda (p1 ... pn) e)
-object Lambda extends ExtractableOp[(Seq[Expr],Expr)]("lambda"):
+object Lambda extends ExtractableOp[(Seq[Expr], Expr)]("lambda"):
   def extract: PartialFunction[Expr, (Seq[Expr], Expr)] = {
     case Lisp(Seq(Op, Lisp(parms), expr)) => (parms, expr)
   }
 
 // (quote (lambda (p1 ... pn) e))
-object QuotedLambda extends ExtractableOp[(Seq[Expr],Expr)]("quote"):
+object QuotedLambda extends ExtractableOp[(Seq[Expr], Expr)]("quote"):
   def extract: PartialFunction[Expr, (Seq[Expr], Expr)] = {
     case Lisp(Seq(Op, Lambda(parms, expr))) => (parms, expr)
   }
 
 // ((lambda (p1 ... pn) e) a1 ... an)
-object Function extends Extractable[(Seq[Expr],Expr,Seq[Expr])]:
+object Function extends Extractable[(Seq[Expr], Expr, Seq[Expr])]:
   def extract: PartialFunction[Expr, (Seq[Expr], Expr, Seq[Expr])] = {
     case Lisp(Lambda(parms, expr) +: args) =>
       (parms, expr, args)
   }
 
 // ((lambda (p1 ... pn) (f fa1 ... fan)) a1 ... an)
-object QuotedFunction extends Extractable[(Seq[Expr],Atom,Seq[Expr],Seq[Expr])]:
+object QuotedFunction extends Extractable[(Seq[Expr], Atom, Seq[Expr],  Seq[Expr])]:
   def extract: PartialFunction[Expr, (Seq[Expr], Atom, Seq[Expr], Seq[Expr])] = {
     case Lisp(Lambda(parms, Lisp((op : Atom) +: fargs)) +: args)
       if !PrimitiveOps.contains(op) && args.nonEmpty && QuotedLambda.is(args.head) =>
