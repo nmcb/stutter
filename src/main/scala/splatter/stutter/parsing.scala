@@ -5,7 +5,7 @@ import scala.annotation.tailrec
 
 object parsing:
   
-  case class P[+A](parse: String => Option[(A,String)]):
+  case class P[+A](parse: String => Option[(A, String)]):
   
     def flatMap[B](f: A => P[B]): P[B] =
       P(s =>

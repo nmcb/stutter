@@ -20,7 +20,7 @@ class PrimitiveExpressions extends AnyFunSpec:
         parseLisp("(cond (eq ('a 'b) 'first) (eq ('a 'a) ('second)))")
       ) foreach (
         e => (
-          e match {
+          e match
             case Lisp(Seq(AtomLit.Op, _))    => AtomLit.Op.value
             case Lisp(Seq(QuoteLit.Op, _))   => QuoteLit.Op.value
             case Lisp(Seq(EqLit.Op, _, _))   => EqLit.Op.value
@@ -29,7 +29,6 @@ class PrimitiveExpressions extends AnyFunSpec:
             case Lisp(Seq(ConsLit.Op, _, _)) => ConsLit.Op.value
             case Lisp(CondLit.Op +: _)       => CondLit.Op.value
             case _ => sys.error(s"unmatched test expression $e")
-          }
         ) should be (e.asInstanceOf[Lisp].subs.head.asInstanceOf[Atom].value)
       )
 
