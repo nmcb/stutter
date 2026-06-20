@@ -10,31 +10,31 @@ class ParserSpec extends AnyFunSpec:
   
   describe("Parser"):
     it("should parse atoms"):
-      parseLisp("foo") should be(
+      "foo".parse should be(
         Atom("foo"))
     
     it("should parse lists"):
-      parseLisp("()") should be(
+      "()".parse should be(
         Lisp(Nil))
-      parseLisp("(foo)") should be(
+      "(foo)".parse should be(
         Lisp(Seq(Atom("foo"))))
-      parseLisp("(foo bar)") should be(
+      "(foo bar)".parse should be(
         Lisp(Seq(Atom("foo"), Atom("bar"))))
-      parseLisp("(a b (c) d)") should be(
+      "(a b (c) d)".parse should be(
         Lisp(Seq(Atom("a"), Atom("b"), Lisp(Seq(Atom("c"))), Atom("d"))))
     
     it("should parse normal single ' quotes on atoms and lists"):
-      parseLisp("'a") should be(
+      "'a".parse should be(
         Lisp(Seq(Atom("quote"), Atom("a"))))
-      parseLisp("'(a b c)") should be(
+      "'(a b c)".parse should be(
         Lisp(Seq(Atom("quote"), Lisp(Seq(Atom("a"), Atom("b"), Atom("c"))))))
     
     it("should parse ugly, copy-paste, english, burn your fingers, sharp ’ quotes"):
-      parseLisp("’a") should be(
+      "’a".parse should be(
         Lisp(Seq(Atom("quote"), Atom("a"))))
     
     it("should parse complex structures"):
-      parseLisp("((lambda (x) (cons x '(b))) 'a)") should be(
+      "((lambda (x) (cons x '(b))) 'a)".parse should be(
         Lisp(Seq(
           Lisp(Seq(
             Atom("lambda"),
@@ -54,15 +54,14 @@ class ParserSpec extends AnyFunSpec:
       )
     
     it("should handle complex whitespace"):
-      parseLisp("(  a  )") should be (parseLisp("(a)"))
-      parseLisp(
-        """'(
+      "(  a  )".parse should be ("(a)".parse)
+      """'(
           |  a
           |     b
           |        c
-          |)""".stripMargin) should be(parseLisp("'(a b c)"))
+          |)""".stripMargin.parse should be("'(a b c)".parse)
     
     /* Sanity Checks */
 
     it("should parse lists recursively"):
-      parseLisp("(())") should be(Lisp(Seq(Lisp(Nil))))
+      "(())".parse should be(Lisp(Seq(Lisp(Nil))))

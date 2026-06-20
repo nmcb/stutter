@@ -176,3 +176,7 @@ object Parser:
 
   def parseLisp(s: String): Expr =
     run(expr)(s)
+    
+  extension (s: String)
+    def parse: Expr =
+      parseLisp(s)  
