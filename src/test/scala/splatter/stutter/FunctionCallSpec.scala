@@ -15,7 +15,7 @@ class FunctionCallSpec extends AnyFunSpec:
             |  ((lambda (x) (cons x '(b)))
             |    'a)
             |
-          """.stripMargin) should be (parseLisp("(a b)"))
+          """.stripMargin) should be ("(a b)".parse)
 
       eval(
           """
@@ -23,7 +23,7 @@ class FunctionCallSpec extends AnyFunSpec:
             |    'z
             |    '(a b c))
             |
-          """.stripMargin) should be (parseLisp("(z b c)"))
+          """.stripMargin) should be ("(z b c)".parse)
     
     it("treats parameters as operators in expressions as well as arguments"):
       eval(
@@ -31,12 +31,12 @@ class FunctionCallSpec extends AnyFunSpec:
           |  ((lambda (f) (f '(b c)))
           |    ’(lambda (x) (cons 'a x)))
           |
-        """.stripMargin) should be (parseLisp("(a b c)"))
+        """.stripMargin) should be ("(a b c)".parse)
     
   
   describe("structural expression replacement"):
     it("replaces expressions recursively, though maintains structural composition"):
-      replace(parseLisp("(a b (c d (e) f) (g) h)"), Map(
+      replace("(a b (c d (e) f) (g) h)".parse, Map(
         Atom("a") -> Atom("A"),
         Atom("b") -> Atom("B"),
         Atom("c") -> Atom("C"),
@@ -45,4 +45,4 @@ class FunctionCallSpec extends AnyFunSpec:
         Atom("f") -> Atom("F"),
         Atom("g") -> Lisp(Nil),
         Atom("h") -> Atom("H")
-      )) should be (parseLisp("(A B (C (DA DB) (E) F) (()) H)"))
+      )) should be ("(A B (C (DA DB) (E) F) (()) H)".parse)
