@@ -11,6 +11,10 @@ object Expr:
   val t = Atom("t")
   val f = Lisp(Nil)
 
+  extension (e: Expr)
+    def eval: Expr =
+      evalExpr(e)
+
 case class Atom(value: String) extends Expr:
   def isAtom: Boolean = true
   def isLisp: Boolean = false
@@ -84,15 +88,15 @@ object QuotedFunction extends Extractable[(Seq[Expr], Atom, Seq[Expr],  Seq[Expr
         (parms, op, fargs, args)
   }
 
-def eval(e: Expr): Expr =
+def evalExpr(e: Expr): Expr =
   e match
 
     // quoted function calls first
     // - unquote the lambda present in the first argument
     case QuotedFunction(parms, op, fargs, args) =>
-      eval(Lisp(args.head match
+      Lisp(args.head match
         case Lisp(Seq(QuoteLit.Op, lambda)) => lambda  +: fargs
-        case _                              => sys.error("lambda expression not quoted")))
+        case _                              => sys.error("lambda expression not quoted")).eval
 
     // function calls second
     // - eval all args except for quoted ones
@@ -100,45 +104,42 @@ def eval(e: Expr): Expr =
     case Function(parms, expr, args) =>
       val evaluated = args.map:
         case q @ QuoteLit(_) => q
-        case e : Expr     => eval(e)
+        case e : Expr        => e.eval
       val replaced = replace(expr, parms.zip(evaluated).toMap)
-      eval(replaced)
+      replaced.eval
 
     // primitive operations last
     case QuoteLit(arg) => arg
-    case AtomLit(arg)  => eval(arg) match
+    case AtomLit(arg)  => arg.eval match
       case a: Atom              => Expr.t
       case l: Lisp if l.isEmpty => Expr.t
       case _                    => Expr.f
-    case EqLit(a, b) => (eval(a), eval(b)) match
+    case EqLit(a, b) => (a.eval, b.eval) match
       case (a1: Atom, a2: Atom) if a1 == a2                 => Expr.t
       case (l1: Lisp, l2: Lisp) if l1.isEmpty && l2.isEmpty => Expr.t
       case _                                                => Expr.f
-    case CarLit(arg) => eval(arg) match
+    case CarLit(arg) => arg.eval match
       case l: Lisp if l.isEmpty => sys.error("car on empty list")
       case l: Lisp              => l.subs.head
       case a: Atom              => sys.error(s"not a list: $a")
-    case CdrLit(arg) => eval(arg) match
+    case CdrLit(arg) => arg.eval match
       case l: Lisp if l.subs.size <= 1 => sys.error("cdr on empty or singleton list")
       case l: Lisp                     => Lisp(l.subs.tail)
       case a: Atom                     => sys.error(s"not a list: $a")
-    case ConsLit(a, b) => (eval(a), eval(b)) match
+    case ConsLit(a, b) => (a.eval, b.eval) match
       case (e, Lisp(es)) => Lisp(e +: es)
       case (_, a: Atom)  => sys.error(s"not a list: $a")
     case CondLit(args) =>
       args
         .find:
-          case Lisp(Seq(p, e)) => eval(p) == Expr.t
+          case Lisp(Seq(p, e)) => p.eval == Expr.t
           case e: Expr         => sys.error(s"not a conditional $e")
         .getOrElse(sys.error("undefined"))
           match
-            case Lisp(Seq(_, expr)) => eval(expr)
-            case e                  => sys.error(s"has no argument list $e")
+            case Lisp(Seq(_, e)) => e.eval
+            case e               => sys.error(s"has no argument list $e")
     case _ =>
       sys.error(s"invalid expression: $e")
-
-def eval(s: String): Expr =
-  eval(Parser.parseLisp(s))
 
 def replace(expr: Expr, parms: Map[Expr, Expr]): Expr =
   Lisp(expr.subs.map:
@@ -176,7 +177,7 @@ object Parser:
 
   def parseLisp(s: String): Expr =
     run(expr)(s)
-    
+
   extension (s: String)
     def parse: Expr =
-      parseLisp(s)  
+      parseLisp(s)

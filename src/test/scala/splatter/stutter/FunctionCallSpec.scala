@@ -10,28 +10,25 @@ class FunctionCallSpec extends AnyFunSpec:
   
   describe("A function call"):
     it("works as specified in chapter 2 of roots of lisp..."):
-      eval(
-          """
-            |  ((lambda (x) (cons x '(b)))
-            |    'a)
-            |
-          """.stripMargin) should be ("(a b)".parse)
+      """
+        |  ((lambda (x) (cons x '(b)))
+        |    'a)
+        |
+      """.stripMargin.parse.eval should be ("(a b)".parse)
 
-      eval(
-          """
-            |  ((lambda (x y) (cons x (cdr y)))
-            |    'z
-            |    '(a b c))
-            |
-          """.stripMargin) should be ("(z b c)".parse)
+      """
+        |  ((lambda (x y) (cons x (cdr y)))
+        |    'z
+        |    '(a b c))
+        |
+      """.stripMargin.parse.eval should be ("(z b c)".parse)
     
     it("treats parameters as operators in expressions as well as arguments"):
-      eval(
-          """
-          |  ((lambda (f) (f '(b c)))
-          |    ’(lambda (x) (cons 'a x)))
-          |
-        """.stripMargin) should be ("(a b c)".parse)
+        """
+        |  ((lambda (f) (f '(b c)))
+        |    ’(lambda (x) (cons 'a x)))
+        |
+      """.stripMargin.parse.eval should be ("(a b c)".parse)
     
   
   describe("structural expression replacement"):
